@@ -51,7 +51,7 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .nav-btn.active{color:var(--primary)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
 .nav-btn span{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:25%;transition:left .2s cubic-bezier(.4,0,.2,1)}
+.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:20%;transition:left .2s cubic-bezier(.4,0,.2,1)}
 
 /* ── Page Header ── */
 .ph{position:sticky;top:0;z-index:50;background:rgba(6,10,19,.97);backdrop-filter:blur(20px);
@@ -195,6 +195,45 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .empty-text{font-size:16px;font-weight:700;color:var(--text2)}
 .empty-sub{font-size:13px;color:var(--text3);margin-top:6px}
 
+/* ── Follow-up Reminder Cards ── */
+.followup-banner{
+  margin:14px 16px 0;
+  border-radius:var(--radius);
+  overflow:hidden;
+  border:1.5px solid rgba(245,158,11,.45);
+  background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(249,115,22,.05));
+}
+.followup-banner-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px 10px;
+  border-bottom:1px solid rgba(245,158,11,.2);
+}
+.followup-banner-title{font-size:13px;font-weight:800;color:var(--yellow);display:flex;align-items:center;gap:7px;letter-spacing:.2px}
+.followup-badge{background:var(--yellow);color:#060a13;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:900}
+.fu-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid rgba(245,158,11,.12);cursor:pointer;transition:background .13s}
+.fu-item:last-child{border-bottom:none}
+.fu-item:active{background:rgba(245,158,11,.08)}
+.fu-avatar{width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.fu-name{font-size:14px;font-weight:800;color:var(--text)}
+.fu-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.fu-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block}
+.fu-tag.today{background:rgba(245,158,11,.2);color:var(--yellow)}
+.fu-tag.overdue{background:rgba(239,68,68,.2);color:var(--red)}
+.fu-loc{font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px}
+.fu-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+
+/* ── Overdue banner ── */
+.overdue-strip{
+  margin:10px 16px 0;
+  padding:10px 14px;border-radius:12px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+}
+.overdue-strip:active{background:rgba(239,68,68,.15)}
+
+/* ── Nav badge ── */
+.nav-badge{position:absolute;top:4px;right:calc(50% - 24px);background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:20px;min-width:16px;text-align:center}
+
 /* ── Dashboard sections ── */
 .section{padding:16px 16px 0}
 .section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
@@ -312,7 +351,11 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
       </div>
     </div>
 
-    <div class="section" style="margin-top:16px">
+    <!-- ── FOLLOW-UP REMINDERS (injected by JS) ── -->
+    <div id="fu-overdue-wrap"></div>
+    <div id="fu-today-wrap"></div>
+
+    <div class="section" style="margin-top:14px">
       <div class="section-title">Pipeline Status</div>
       <div class="pipeline" id="pipeline-bar"></div>
       <div id="pipeline-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
@@ -333,10 +376,14 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           Check In
         </button>
+        <button class="btn" style="flex:1;background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3)" onclick="goTo('diary');diaryAddStop()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+          Diary
+        </button>
       </div>
     </div>
 
-    <div class="section" style="margin-top:16px;padding-bottom:20px">
+    <div class="section" style="margin-top:16px;padding-bottom:24px">
       <div class="section-title">Today's Calls <span id="today-call-count" style="font-weight:900;color:var(--primary)">0</span></div>
       <div id="today-calls-list"></div>
     </div>
@@ -413,9 +460,61 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
   </div>
 
 
-</div>
+  <!-- ════════ DIARY PAGE ════════ -->
+  <div class="page" id="page-diary">
+    <div class="ph" style="padding-bottom:12px">
+      <div class="ph-row">
+        <div>
+          <div class="ph-title">📓 Day Diary</div>
+          <div class="ph-sub" id="diary-date-label">Today's Journey</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="date" id="diary-date-filter" class="form-input" style="font-size:12px;padding:6px 10px;width:140px" onchange="renderDiary()">
+        </div>
+      </div>
+    </div>
 
-<!-- ════════ BOTTOM NAV ════════ -->
+    <!-- Journey Status Bar -->
+    <div id="diary-status-bar" style="padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+      <div style="display:flex;gap:10px;align-items:stretch">
+        <button id="diary-add-stop-btn" onclick="diaryAddStop()" style="flex:1;padding:13px 10px;border-radius:14px;background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border:1.5px solid rgba(249,115,22,.5);color:var(--primary);font-weight:800;font-size:14px;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px">
+          <div style="width:9px;height:9px;border-radius:50%;background:var(--primary);animation:pulse 1.5s infinite;flex-shrink:0"></div>
+          📍 Add Stop
+        </button>
+        <button onclick="diaryEndDay()" id="diary-end-btn" style="padding:13px 16px;border-radius:14px;background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.4);color:var(--red);font-weight:800;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:6px">
+          🏁 End Day
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Card (auto-generated) -->
+    <div id="diary-summary-card" style="display:none;margin:14px 16px 0">
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(59,130,246,.06));border:1.5px solid rgba(16,185,129,.35);border-radius:var(--radius);padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:7px">
+            📋 Day Summary
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="shareDiarySummary()" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.35);border-radius:8px;padding:6px 12px;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:5px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>Share
+            </button>
+            <button onclick="downloadDiarySummary()" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:6px 12px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:5px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Save
+            </button>
+          </div>
+        </div>
+        <!-- Stats row -->
+        <div id="diary-stats-row" style="display:flex;gap:0;margin-bottom:12px;background:rgba(0,0,0,.2);border-radius:10px;overflow:hidden"></div>
+        <!-- Auto-generated text summary -->
+        <div id="diary-summary-text" style="font-size:13px;color:var(--text);line-height:1.7;background:rgba(0,0,0,.15);border-radius:10px;padding:12px;font-family:monospace;white-space:pre-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Journey stops list -->
+    <div id="diary-stops-list" style="padding:14px 16px 100px"></div>
+  </div>
+
+</div>
 <nav id="nav">
   <div class="nav-indicator" id="nav-indicator"></div>
   <button class="nav-btn active" id="nav-dashboard" onclick="goTo('dashboard')">
@@ -433,6 +532,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
   <button class="nav-btn" id="nav-timeline" onclick="goTo('timeline')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
     <span>Timeline</span>
+  </button>
+  <button class="nav-btn" id="nav-diary" onclick="goTo('diary')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    <span>Diary</span>
   </button>
 </nav>
 
@@ -603,7 +706,7 @@ function closeModal(e) {
 // ROUTER
 // ══════════════════════════════════════════════════════════════
 let _currentPage = 'dashboard';
-const PAGES=['dashboard','leads','calls','timeline'];;
+const PAGES=['dashboard','leads','calls','timeline','diary'];;
 let _statusFilter = 'All';
 
 function goTo(page) {
@@ -614,7 +717,7 @@ function goTo(page) {
 
   // Nav indicator
   const idx = PAGES.indexOf(page);
-  document.getElementById('nav-indicator').style.left = (idx*25)+'%';
+  document.getElementById('nav-indicator').style.left = (idx*20)+'%';
 
   // FAB
   const fab = document.getElementById('page-fab');
@@ -624,6 +727,7 @@ function goTo(page) {
   if (page==='dashboard') renderDashboard();
   if (page==='leads') renderLeads();
   if (page==='calls') renderCalls();
+  if (page==='diary') renderDiary();
 }
 
 function fabAction() {
@@ -673,19 +777,70 @@ function renderDashboard() {
   const list = document.getElementById('today-calls-list');
   if (!todayCalls.length) {
     list.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No calls logged today yet</div>`;
-    return;
+  } else {
+    list.innerHTML = [...todayCalls].slice(0,8).map(c=>{
+      const lead = DB.leads.find(l=>l.id===c.leadId);
+      return `<div class="recent-call">
+        <div>
+          <div style="font-size:14px;font-weight:700">${esc(lead?lead.name:'Unknown Prospect')}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(c.outcome)}${c.duration?` · ${c.duration} min`:''}</div>
+          ${c.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 ${esc(c.address)}</div>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--text2);text-align:right;flex-shrink:0;margin-left:12px">${fmtTime(c.calledAt)}</div>
+      </div>`;
+    }).join('');
   }
-  list.innerHTML = [...todayCalls].slice(0,8).map(c=>{
-    const lead = DB.leads.find(l=>l.id===c.leadId);
-    return `<div class="recent-call">
-      <div>
-        <div style="font-size:14px;font-weight:700">${esc(lead?lead.name:'Unknown Prospect')}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(c.outcome)}${c.duration?` · ${c.duration} min`:''}</div>
-        ${c.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 ${esc(c.address)}</div>`:''}
+
+  // ── Follow-up Reminders ──
+  const todayLeads  = leads.filter(l=>l.nextFollowUp===today && l.status!=='Closed' && l.status!=='Lost');
+  const overdueLeads= leads.filter(l=>l.nextFollowUp && l.nextFollowUp<today && l.status!=='Closed' && l.status!=='Lost');
+
+  // Update nav badge on Home button
+  const totalAlert = todayLeads.length + overdueLeads.length;
+  let nb = document.getElementById('dash-nav-badge');
+  if(!nb){ nb=document.createElement('span'); nb.id='dash-nav-badge'; nb.className='nav-badge'; document.getElementById('nav-dashboard').style.position='relative'; document.getElementById('nav-dashboard').appendChild(nb); }
+  nb.textContent = totalAlert||''; nb.style.display = totalAlert?'':'none';
+
+  // Overdue strip
+  const overdueWrap = document.getElementById('fu-overdue-wrap');
+  if(overdueLeads.length){
+    overdueWrap.innerHTML=`<div class="overdue-strip" onclick="filterStatus('All');goTo('leads')">
+      <span style="font-size:22px">⚠️</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:800;color:var(--red)">${overdueLeads.length} Overdue Follow-up${overdueLeads.length>1?'s':''}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${overdueLeads.map(l=>esc(l.name)).join(', ')}</div>
       </div>
-      <div style="font-size:12px;color:var(--text2);text-align:right;flex-shrink:0;margin-left:12px">${fmtTime(c.calledAt)}</div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </div>`;
-  }).join('');
+  } else { overdueWrap.innerHTML=''; }
+
+  // Today follow-ups banner
+  const fuWrap = document.getElementById('fu-today-wrap');
+  if(todayLeads.length){
+    fuWrap.innerHTML=`<div class="followup-banner">
+      <div class="followup-banner-hdr">
+        <div class="followup-banner-title">
+          🔔 Follow-up Today
+          <span class="followup-badge">${todayLeads.length}</span>
+        </div>
+        <button onclick="filterStatus('All');goTo('leads')" style="background:none;border:none;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+      </div>
+      ${todayLeads.map(l=>`
+        <div class="fu-item" onclick="openLeadForm('${l.id}')">
+          <div class="fu-avatar">${l.status==='Interested'?'🔥':l.status==='Negotiating'?'🤝':'👤'}</div>
+          <div style="flex:1;min-width:0">
+            <div class="fu-name">${esc(l.name)}</div>
+            <div class="fu-sub">${l.company?esc(l.company)+' · ':''}<span class="badge badge-${l.status}" style="font-size:10px;padding:1px 7px">${l.status}</span></div>
+            ${l.address?`<div class="fu-loc"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address.slice(0,40))}${l.address.length>40?'...':''}</div>`:''}
+            <span class="fu-tag today">📅 Follow up today</span>
+          </div>
+          <div class="fu-actions">
+            <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="padding:6px 10px">📞</button>
+            ${l.lat&&l.lng?`<button class="btn btn-sm" onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="padding:6px 8px;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Go</button>`:`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewOnMap('${l.id}')" style="padding:6px 10px;font-size:11px">🗺️</button>`}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  } else { fuWrap.innerHTML=''; }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -730,6 +885,8 @@ function renderLeads() {
         </div>
         ${l.phone?`<div class="lead-phone">📱 ${esc(l.phone)}</div>`:''}
         ${l.address?`<div class="lead-loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address)}</div>`:''}
+        ${l.lat&&l.lng?`<button onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px 12px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate to ${esc(l.name)}</button>`:
+          l.address?`<button onclick="event.stopPropagation();window.open('https://www.google.com/maps/search/'+encodeURIComponent('${esc(l.address)}'),'_blank')" style="display:flex;align-items:center;gap:6px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:7px 12px;color:#3b82f6;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Search Address in Maps</button>`:''}
         ${l.notes?`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">"${esc(l.notes.slice(0,80))}${l.notes.length>80?'...':''}"</div>`:''}
         <div style="font-size:11px;color:var(--text3);margin-top:6px">Updated ${fmtDate(l.updatedAt)}</div>
       </div>
@@ -835,6 +992,7 @@ function openLeadForm(id) {
         </button>
       </div>
       <div class="loc-display ${l.lat?'show':''}" id="lf-loc-display">${l.lat?`<strong>📍 ${esc(l.address||'')}</strong><div class="loc-coords">Lat: ${l.lat} | Lng: ${l.lng}</div>`:''}</div>
+      ${l.lat&&l.lng?`<button onclick="navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>🗺️ Navigate to this Location in Google Maps</button>`:''}
     </div>
     <div class="form-group">
       <label class="form-label">Notes / Remarks</label>
@@ -1047,7 +1205,11 @@ function renderTimeline(){
   const events = [];
 
   DB.checkins.filter(c=>c.date===selDate&&c.lat&&c.lng).forEach(c=>{
-    events.push({type:'checkin',ts:c.checkedAt,lat:+c.lat,lng:+c.lng,address:c.address||'',label:c.note||'Check-in',sub:'',id:c.id,obj:c});
+    const linkedLead = c.leadId ? DB.leads.find(l=>l.id===c.leadId) : null;
+    const label = c.note || (linkedLead ? linkedLead.name : 'Check-in');
+    const sub = linkedLead ? '🔗 '+linkedLead.name+(linkedLead.company?' · '+linkedLead.company:'') : '';
+    const fuSub = c.followupDate ? '📅 Follow-up: '+fmtDate(c.followupDate) : '';
+    events.push({type:'checkin',ts:c.checkedAt,lat:+c.lat,lng:+c.lng,address:c.address||'',label,sub,fuSub,id:c.id,obj:c});
   });
   DB.calls.filter(c=>c.date===selDate&&c.lat&&c.lng).forEach(c=>{
     const lead=DB.leads.find(l=>l.id===c.leadId);
@@ -1102,6 +1264,7 @@ function renderTimeline(){
     const icon=ev.type==='checkin'?'📍':ev.type==='call'?'📞':'👤';
     const dist=i>0?haversine(events[i-1].lat,events[i-1].lng,ev.lat,ev.lng).toFixed(2)+'km from prev':'Start';
     const delBtn=ev.type==='checkin'?`<button onclick="event.stopPropagation();deleteCheckin('${ev.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">🗑</button>`:'';
+    const navBtn=`<button onclick="event.stopPropagation();navigateTo(${ev.lat},${ev.lng},'${esc(ev.label)}')" style="display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:5px 10px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate in Google Maps</button>`;
     html+=`<div class="tl-item">
       <div class="tl-line-col">
         <div class="tl-dot ${ev.type}">${icon}</div>
@@ -1112,12 +1275,14 @@ function renderTimeline(){
           <div class="tl-title">${esc(ev.label)}</div>${delBtn}
         </div>
         ${ev.sub?`<div class="tl-sub">${esc(ev.sub)}</div>`:''}
+        ${ev.fuSub?`<div style="font-size:11px;color:var(--yellow);margin-top:3px;font-weight:700">${esc(ev.fuSub)}</div>`:''}
         ${ev.address?`<div class="tl-addr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(ev.address)}</div>`:''}
         <div class="tl-meta">
           <span class="tl-badge ${ev.type}">${ev.type.toUpperCase()}</span>
           <span>🕐 ${fmtTime(ev.ts)}</span>
           <span>${dist}</span>
         </div>
+        ${navBtn}
       </div>
     </div>`;
   });
@@ -1140,12 +1305,25 @@ function quickCheckin(){
       if(d&&d.address){const a=d.address;const p=[a.road||a.pedestrian||a.footway,a.suburb||a.neighbourhood,a.city||a.town||a.village,a.state].filter(Boolean);address=p.join(', ')||address;}
     }catch(e){}
     _ciRunning=false; resetCiBtn();
+    // Calculate default follow-up date (3 days from today)
+    const def3days = new Date(); def3days.setDate(def3days.getDate()+3);
+    const def3str = def3days.toISOString().slice(0,10);
     showModal('📍 Check In',
       `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
         <div style="font-size:14px;font-weight:700;margin-bottom:5px">📍 ${esc(address)}</div>
         <div style="font-size:11px;color:var(--text3);font-family:monospace">Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)} | ±${Math.round(accuracy)}m</div>
        </div>
-       <div class="form-group"><label class="form-label">Note (optional)</label><input class="form-input" id="ci-note" placeholder="e.g. Visiting client, Market area, Office..." autofocus></div>
+       <div class="form-group"><label class="form-label">Note / Place Name (optional)</label><input class="form-input" id="ci-note" placeholder="e.g. ABC Company, Market area, Client office..." autofocus></div>
+       <div class="form-group"><label class="form-label">Link to Lead (optional)</label>
+         <select class="form-input form-select" id="ci-lead">
+           <option value="">— No lead linked —</option>
+           ${DB.leads.map(l=>`<option value="${l.id}">${esc(l.name)}${l.company?' ('+esc(l.company)+')':''}</option>`).join('')}
+         </select>
+       </div>
+       <div class="form-group"><label class="form-label">Set Follow-up Date</label>
+         <input class="form-input" id="ci-followup" type="date" value="${def3str}">
+         <div style="font-size:11px;color:var(--text3);margin-top:5px">⚡ This will also update the linked lead's follow-up date</div>
+       </div>
        <input type="hidden" id="ci-lat" value="${lat}"><input type="hidden" id="ci-lng" value="${lng}"><input type="hidden" id="ci-addr" value="${esc(address)}">`,
       `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:2" onclick="saveCheckin()">📍 Save Check-in</button>`
     );
@@ -1161,13 +1339,38 @@ function resetCiBtn(){
 }
 
 function saveCheckin(){
-  const ci={id:uid(),lat:document.getElementById('ci-lat').value,lng:document.getElementById('ci-lng').value,address:document.getElementById('ci-addr').value,note:document.getElementById('ci-note').value.trim(),checkedAt:new Date().toISOString(),date:todayStr()};
+  const linkedLeadId = document.getElementById('ci-lead')?.value||'';
+  const followupDate = document.getElementById('ci-followup')?.value||'';
+  const ci={id:uid(),lat:document.getElementById('ci-lat').value,lng:document.getElementById('ci-lng').value,address:document.getElementById('ci-addr').value,note:document.getElementById('ci-note').value.trim(),leadId:linkedLeadId,followupDate,checkedAt:new Date().toISOString(),date:todayStr()};
   DB.checkins.unshift(ci); _saveCI();
-  showToast('Check-in saved! 📍','success');
+
+  // If lead linked + follow-up date set → update the lead's follow-up date automatically
+  if(linkedLeadId && followupDate){
+    const lead = DB.leads.find(l=>l.id===linkedLeadId);
+    if(lead){ lead.nextFollowUp=followupDate; lead.updatedAt=new Date().toISOString(); DB.save(); showToast('Check-in saved + Follow-up set for '+fmtDate(followupDate)+'! 📍','success'); }
+    else { showToast('Check-in saved! 📍','success'); }
+  } else { showToast('Check-in saved! 📍','success'); }
+
   closeModal();
   if(navigator.vibrate)navigator.vibrate([50,30,50]);
   if(_currentPage==='timeline')renderTimeline();
   renderDashboard();
+}
+
+function navigateTo(lat, lng, label){
+  if(!lat||!lng){showToast('No GPS location saved for this place','error');return;}
+  // Opens Google Maps navigation — works on Android (app) and browser
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  window.open(url, '_blank');
+}
+
+function viewOnMap(leadId){
+  const lead = DB.leads.find(l=>l.id===leadId);
+  if(!lead||!lead.lat){showToast('No location saved for this lead. Edit lead and add GPS location.','error');return;}
+  goTo('timeline');
+  setTimeout(()=>{
+    if(_map){ _map.setView([+lead.lat,+lead.lng],16); }
+  },400);
 }
 
 function deleteCheckin(id){
@@ -1238,12 +1441,302 @@ self.addEventListener('fetch',e=>e.respondWith(
 })();
 
 // ══════════════════════════════════════════════════════════════
+// DIARY — JOURNEY LOG
+// ══════════════════════════════════════════════════════════════
+// Data: diary stops stored in localStorage keyed by date
+// Each stop: {id, label, address, lat, lng, ts, type:'start'|'stop'|'end'}
+
+function _getDiaryStops(date){ try{ return JSON.parse(localStorage.getItem('cratio_diary_'+date)||'[]'); }catch{ return []; } }
+function _saveDiaryStops(date, stops){ localStorage.setItem('cratio_diary_'+date, JSON.stringify(stops)); }
+
+let _diaryGettingLoc = false;
+
+function renderDiary(){
+  const date = document.getElementById('diary-date-filter').value || todayStr();
+  const isToday = date === todayStr();
+  document.getElementById('diary-date-label').textContent = isToday ? "Today's Journey" : fmtDate(date);
+
+  // Show/hide add-stop bar only for today
+  document.getElementById('diary-status-bar').style.display = isToday ? 'block' : 'none';
+
+  const stops = _getDiaryStops(date);
+  const listEl = document.getElementById('diary-stops-list');
+  const summaryCard = document.getElementById('diary-summary-card');
+
+  if(!stops.length){
+    summaryCard.style.display='none';
+    listEl.innerHTML=`<div class="empty">
+      <div class="empty-icon">📓</div>
+      <div class="empty-text">${isToday?'No stops logged yet':'No diary for this date'}</div>
+      <div class="empty-sub">${isToday?'Tap "Add Stop" when you leave a place to start your journey log':'Check-ins from this date will appear here'}</div>
+    </div>`;
+    return;
+  }
+
+  // Build summary
+  summaryCard.style.display='block';
+  _buildDiarySummary(date, stops);
+
+  // Build stop cards
+  let html='';
+  stops.forEach((stop, i)=>{
+    const isFirst = i===0;
+    const isLast = i===stops.length-1;
+    const prev = i>0?stops[i-1]:null;
+    const next = i<stops.length-1?stops[i+1]:null;
+
+    // Time between stops
+    let travelInfo='';
+    if(prev){
+      const mins = Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
+      const dist = (prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
+      travelInfo=`<div style="display:flex;align-items:center;gap:6px;padding:6px 0 6px 18px;margin-left:16px;border-left:2px dashed var(--border2)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <span style="font-size:11px;color:var(--text3);font-weight:600">${mins<60?mins+' min':(mins/60).toFixed(1)+' hr'} travel${dist?' · ~'+dist+' km':''}</span>
+      </div>`;
+    }
+
+    const dotColor = isFirst?'#10b981': stop.type==='end'?'#ef4444':'#f97316';
+    const dotEmoji = isFirst?'🏢': stop.type==='end'?'🏁':'📍';
+    const typeLabel = isFirst?'START': stop.type==='end'?'END':'STOP';
+    const typeBg = isFirst?'var(--green-dim)': stop.type==='end'?'var(--red-dim)':'var(--pri-dim)';
+    const typeColor = isFirst?'var(--green)': stop.type==='end'?'var(--red)':'var(--primary)';
+    const typeBorder = isFirst?'rgba(16,185,129,.3)': stop.type==='end'?'rgba(239,68,68,.3)':'rgba(249,115,22,.3)';
+
+    html += travelInfo;
+    html += `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:4px">
+      <!-- dot + line -->
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:4px">
+        <div style="width:38px;height:38px;border-radius:50%;background:${dotColor}22;border:2px solid ${dotColor};display:flex;align-items:center;justify-content:center;font-size:17px;position:relative;z-index:2">${dotEmoji}</div>
+        ${!isLast?`<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin:4px 0;flex-shrink:0"></div>`:''}
+      </div>
+      <!-- content -->
+      <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:${!isLast?'0':'8px'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--text)">${esc(stop.label)}</div>
+            <div style="font-size:11px;margin-top:3px"><span style="background:${typeBg};color:${typeColor};border:1px solid ${typeBorder};padding:1px 8px;border-radius:10px;font-weight:700;letter-spacing:.4px">${typeLabel}</span>
+            <span style="color:var(--text2);margin-left:6px">🕐 ${fmtTime(stop.ts)}</span></div>
+          </div>
+          ${isToday?`<button onclick="deleteDiaryStop('${date}','${stop.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 0 0 4px">🗑</button>`:''}
+        </div>
+        ${stop.address?`<div style="font-size:12px;color:var(--text3);display:flex;align-items:flex-start;gap:5px;margin-top:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(stop.address)}</div>`:''}
+        ${stop.lat&&stop.lng?`<button onclick="navigateTo(${stop.lat},${stop.lng},'${esc(stop.label)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px 12px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:10px;width:100%;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate to ${esc(stop.label)}</button>`:''}
+        ${stop.notes?`<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-style:italic">${esc(stop.notes)}</div>`:''}
+      </div>
+    </div>`;
+  });
+  listEl.innerHTML=html;
+}
+
+function _buildDiarySummary(date, stops){
+  if(!stops.length) return;
+
+  // Stats
+  let totalMins=0, totalDist=0;
+  for(let i=1;i<stops.length;i++){
+    totalMins+=Math.round((new Date(stops[i].ts)-new Date(stops[i-1].ts))/60000);
+    if(stops[i-1].lat&&stops[i].lat) totalDist+=haversine(+stops[i-1].lat,+stops[i-1].lng,+stops[i].lat,+stops[i].lng);
+  }
+  const hrs=Math.floor(totalMins/60), mins=totalMins%60;
+
+  document.getElementById('diary-stats-row').innerHTML=`
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--green)">${stops.length}</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Stops</div></div>
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--primary)">${totalDist.toFixed(1)}<span style="font-size:11px">km</span></div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Distance</div></div>
+    <div style="flex:1;text-align:center;padding:10px 4px"><div style="font-size:20px;font-weight:900;color:var(--blue)">${hrs>0?hrs+'h ':''} ${mins}m</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Duration</div></div>
+  `;
+
+  // Auto-generate clean readable summary
+  const dateLabel = date===todayStr()?'Today':fmtDate(date);
+  let lines = [`📓 DAILY VISIT REPORT — ${dateLabel}`, `${'─'.repeat(38)}`,''];
+
+  stops.forEach((stop,i)=>{
+    const timeStr = fmtTime(stop.ts);
+    const isFirst = i===0;
+    const isLast = i===stops.length-1;
+    const next = stops[i+1];
+
+    if(isFirst){
+      lines.push(`🏢  ${timeStr}  —  Started from ${stop.label}`);
+      if(stop.address) lines.push(`      📍 ${stop.address}`);
+    } else if(isLast && stop.type==='end'){
+      const prev=stops[i-1];
+      const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
+      const dist=(prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
+      lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
+      lines.push(`🏁  ${timeStr}  —  Returned to ${stop.label}`);
+      if(stop.address) lines.push(`      📍 ${stop.address}`);
+    } else {
+      const prev=stops[i-1];
+      const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
+      const dist=(prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
+      lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
+      lines.push(`📍  ${timeStr}  —  Visited ${stop.label}`);
+      if(stop.address) lines.push(`      📍 ${stop.address}`);
+    }
+    if(stop.notes) lines.push(`      💬 ${stop.notes}`);
+  });
+
+  lines.push('');
+  lines.push(`${'─'.repeat(38)}`);
+  lines.push(`🚗 Total Distance : ${totalDist.toFixed(1)} km`);
+  lines.push(`⏱  Total Duration : ${hrs>0?hrs+'h ':''} ${mins} min`);
+  lines.push(`📍 Total Stops    : ${stops.length}`);
+  lines.push('');
+  lines.push('Generated by Cratio CRM · Sai Ganesh Electricals');
+
+  const summaryText = lines.join('\n');
+  document.getElementById('diary-summary-text').textContent = summaryText;
+
+  // Store for download
+  window._diarySummaryText = summaryText;
+  window._diarySummaryDate = date;
+}
+
+function diaryAddStop(){
+  if(_diaryGettingLoc){ showToast('Already getting location...'); return; }
+  const date = todayStr();
+  const stops = _getDiaryStops(date);
+  const stopNum = stops.length;
+  const isFirst = stopNum===0;
+  const defLabel = isFirst?'Office':'';
+
+  showModal(isFirst?'🏢 Journey Start':'📍 Add Stop',`
+    <div class="form-group">
+      <label class="form-label">${isFirst?'Starting Place':'Place / Company Name'} *</label>
+      <input class="form-input" id="ds-label" value="${defLabel}" placeholder="${isFirst?'e.g. Office, Home':'e.g. ABC Company, DLF Office, Godown'}" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" id="ds-notes" placeholder="e.g. Meeting with Mr. Kumar, Delivery done">
+    </div>
+    <div class="form-group">
+      <label class="form-label">GPS Location</label>
+      <button class="loc-btn" id="ds-loc-btn" onclick="captureDiaryLoc()" style="width:100%;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        Capture GPS Location
+      </button>
+      <div class="loc-display" id="ds-loc-display"></div>
+    </div>
+    <input type="hidden" id="ds-lat" value=""><input type="hidden" id="ds-lng" value=""><input type="hidden" id="ds-addr" value="">`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" style="flex:2" onclick="saveDiaryStop('stop')">${isFirst?'🏢 Start Journey':'📍 Save Stop'}</button>`
+  );
+}
+
+let _diaryLocCapturing=false;
+async function captureDiaryLoc(){
+  if(_diaryLocCapturing)return; _diaryLocCapturing=true;
+  const btn=document.getElementById('ds-loc-btn');
+  const disp=document.getElementById('ds-loc-display');
+  const loc=await getLocation(btn,disp);
+  if(loc){
+    document.getElementById('ds-lat').value=loc.lat;
+    document.getElementById('ds-lng').value=loc.lng;
+    document.getElementById('ds-addr').value=loc.address;
+  }
+  _diaryLocCapturing=false;
+}
+
+function saveDiaryStop(type){
+  const label=document.getElementById('ds-label').value.trim();
+  if(!label){showToast('Please enter the place name','error');return;}
+  const date=todayStr();
+  const stops=_getDiaryStops(date);
+  const isFirst=stops.length===0;
+  const stop={
+    id:uid(),
+    label,
+    notes:document.getElementById('ds-notes')?.value.trim()||'',
+    address:document.getElementById('ds-addr')?.value||'',
+    lat:document.getElementById('ds-lat')?.value||'',
+    lng:document.getElementById('ds-lng')?.value||'',
+    ts:new Date().toISOString(),
+    type:isFirst?'start':type
+  };
+  stops.push(stop);
+  _saveDiaryStops(date,stops);
+  // Also save as a checkin for timeline
+  if(stop.lat&&stop.lng){
+    DB.checkins.unshift({id:uid(),lat:stop.lat,lng:stop.lng,address:stop.address,note:stop.label,checkedAt:stop.ts,date});
+    _saveCI();
+  }
+  showToast(isFirst?'Journey started! 🏢':'Stop added! 📍','success');
+  if(navigator.vibrate)navigator.vibrate(50);
+  closeModal();
+  renderDiary();
+}
+
+function diaryEndDay(){
+  const date=todayStr();
+  const stops=_getDiaryStops(date);
+  if(!stops.length){showToast('Add at least one stop first','error');return;}
+  const last=stops[stops.length-1];
+  if(last.type==='end'){showToast('Day already ended','error');return;}
+
+  // Pre-fill end label with first stop's label (usually office/home)
+  const defEnd=stops[0].label||'Office';
+  showModal('🏁 End of Day',`
+    <div class="form-group">
+      <label class="form-label">Final Destination *</label>
+      <input class="form-input" id="ds-label" value="${defEnd}" placeholder="e.g. Office, Home">
+    </div>
+    <div class="form-group">
+      <label class="form-label">End Notes (optional)</label>
+      <input class="form-input" id="ds-notes" placeholder="e.g. Day completed, 5 clients visited">
+    </div>
+    <div class="form-group">
+      <label class="form-label">GPS Location</label>
+      <button class="loc-btn" id="ds-loc-btn" onclick="captureDiaryLoc()" style="width:100%;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        Capture GPS Location
+      </button>
+      <div class="loc-display" id="ds-loc-display"></div>
+    </div>
+    <input type="hidden" id="ds-lat" value=""><input type="hidden" id="ds-lng" value=""><input type="hidden" id="ds-addr" value="">`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn" style="flex:2;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.35);font-weight:800;font-size:14px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif" onclick="saveDiaryStop('end')">🏁 End My Day</button>`
+  );
+}
+
+function deleteDiaryStop(date,id){
+  if(!confirm('Delete this stop?'))return;
+  let stops=_getDiaryStops(date).filter(s=>s.id!==id);
+  _saveDiaryStops(date,stops);
+  showToast('Stop deleted');
+  renderDiary();
+}
+
+function downloadDiarySummary(){
+  const text=window._diarySummaryText||'No summary yet';
+  const date=window._diarySummaryDate||todayStr();
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`Cratio_Diary_${date}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Diary saved as .txt file ✓','success');
+}
+
+function shareDiarySummary(){
+  const text=window._diarySummaryText||'No summary yet';
+  if(navigator.share){
+    navigator.share({title:'My Daily Visit Report — Cratio CRM',text}).catch(()=>{});
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(text).then(()=>showToast('Summary copied to clipboard! Paste in WhatsApp ✓','success')).catch(()=>{
+      showToast('Copy not supported. Use Save button.','error');
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', ()=>{
-  // Set today's date in calls filter
   document.getElementById('calls-date-filter').value = todayStr();
   document.getElementById('tl-date').value = todayStr();
+  document.getElementById('diary-date-filter').value = todayStr();
   goTo('dashboard');
 });
 
