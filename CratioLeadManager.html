@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#060a13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cratio CRM">
+<meta name="description" content="Personal Sales Lead Manager for independent sales professionals">
+<title>Cratio · Lead Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060a13;--card:#0c1526;--card2:#111e36;--border:#18294a;--border2:#1f3360;
+  --primary:#f97316;--pri-dim:rgba(249,115,22,.13);--pri-glow:rgba(249,115,22,.25);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,.13);
+  --green:#10b981;--green-dim:rgba(16,185,129,.13);
+  --yellow:#f59e0b;--yel-dim:rgba(245,158,11,.13);
+  --purple:#a78bfa;--pur-dim:rgba(167,139,250,.13);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.13);
+  --text:#dde6f5;--text2:#7a92b8;--text3:#2e4166;
+  --radius:18px;--radius-sm:11px;--nav:68px;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;position:relative}
+input,select,textarea,button{font-family:'Outfit',sans-serif}
+
+/* ── Scrollable pages ── */
+#app{height:100vh;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;bottom:var(--nav);overflow-y:auto;overflow-x:hidden;display:none;animation:fadeSlide .22s ease}
+.page.active{display:block}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── Bottom Nav ── */
+#nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(6,10,19,.95);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:stretch;
+  height:calc(var(--nav) + var(--safe-bot));
+  padding-bottom:var(--safe-bot);z-index:200;
+}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:none;border:none;cursor:pointer;color:var(--text3);transition:color .15s;padding:8px 0}
+.nav-btn.active{color:var(--primary)}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8}
+.nav-btn span{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:33.33%;transition:left .2s cubic-bezier(.4,0,.2,1)}
+
+/* ── Page Header ── */
+.ph{position:sticky;top:0;z-index:50;background:rgba(6,10,19,.97);backdrop-filter:blur(20px);
+  padding:16px 16px 14px;border-bottom:1px solid var(--border)}
+.ph-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.ph-title{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.ph-sub{font-size:12px;color:var(--text2);font-weight:500}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 20px;border-radius:var(--radius-sm);border:none;
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .13s;letter-spacing:.1px}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:#ea6b0a}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.btn-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.btn-ghost{background:var(--card2);color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px}
+.btn-icon{padding:10px;border-radius:10px;background:var(--card2);border:1px solid var(--border)}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.card+.card{margin-top:10px}
+
+/* ── Status badges ── */
+.badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px}
+.badge-New{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.badge-Contacted{background:var(--pur-dim);color:var(--purple);border:1px solid rgba(167,139,250,.3)}
+.badge-Interested{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-Negotiating{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.3)}
+.badge-Closed{background:rgba(16,185,129,.25);color:#6ee7b7;border:1px solid rgba(16,185,129,.5)}
+.badge-Lost{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+
+/* ── Form Inputs ── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin-bottom:6px}
+.form-input{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 14px;color:var(--text);font-size:15px;font-family:'Outfit',sans-serif;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--primary)}
+.form-input::placeholder{color:var(--text3)}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a92b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center}
+.input-group{display:flex;gap:8px;align-items:stretch}
+.input-group .form-input{flex:1}
+
+/* ── Modal (Bottom Sheet) ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:flex-end;justify-content:center}
+#modal-overlay.show{display:flex}
+#modal-box{
+  background:var(--card);border:1px solid var(--border2);border-radius:24px 24px 0 0;
+  width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
+  padding:0 0 calc(24px + var(--safe-bot));
+  animation:slideUp .28s cubic-bezier(.16,1,.3,1)
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:14px auto 4px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 16px}
+.modal-title{font-size:18px;font-weight:800;letter-spacing:-.2px}
+.modal-body{padding:0 20px}
+.modal-footer{padding:16px 20px 0;display:flex;gap:10px}
+.modal-footer .btn{flex:1}
+
+/* ── Search bar ── */
+.search-wrap{position:relative;margin:12px 0 10px}
+.search-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--text3)}
+.search-input{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:11px 14px 11px 38px;color:var(--text);font-size:14px;font-family:'Outfit',sans-serif;outline:none}
+.search-input:focus{border-color:var(--primary)}
+
+/* ── Filter chips ── */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+  background:var(--card2);color:var(--text2);border:1px solid var(--border);transition:all .13s}
+.chip.active{background:var(--pri-dim);color:var(--primary);border-color:rgba(249,115,22,.4)}
+
+/* ── Stat cards ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.07}
+.stat-card.blue::after{background:var(--blue)}
+.stat-card.orange::after{background:var(--primary)}
+.stat-card.green::after{background:var(--green)}
+.stat-card.purple::after{background:var(--purple)}
+.stat-icon{font-size:20px;margin-bottom:8px}
+.stat-value{font-size:30px;font-weight:900;line-height:1;letter-spacing:-1px}
+.stat-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-top:4px}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Lead card ── */
+.lead-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:15px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;position:relative}
+.lead-card:active{border-color:var(--primary)}
+.lead-name{font-size:16px;font-weight:800;margin-bottom:3px;letter-spacing:-.2px}
+.lead-company{font-size:12px;color:var(--text2);margin-bottom:8px}
+.lead-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lead-phone{font-size:13px;color:var(--text2);margin-top:8px}
+.lead-loc{font-size:12px;color:var(--text3);margin-top:5px;display:flex;align-items:center;gap:5px}
+.lead-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px}
+
+/* ── Call card ── */
+.call-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:10px}
+.call-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.call-name{font-size:15px;font-weight:700}
+.call-time{font-size:11px;color:var(--text2);text-align:right}
+.call-outcome{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.outcome-noans{background:var(--card2);color:var(--text2)}
+.outcome-callback{background:var(--pur-dim);color:var(--purple)}
+.outcome-notint{background:var(--red-dim);color:var(--red)}
+.outcome-int{background:var(--green-dim);color:var(--green)}
+.outcome-meeting{background:var(--yel-dim);color:var(--yellow)}
+.outcome-closed{background:rgba(16,185,129,.25);color:#6ee7b7}
+
+/* ── Location button ── */
+.loc-btn{padding:11px 14px;background:var(--blue-dim);border:1px solid rgba(59,130,246,.35);
+  border-radius:var(--radius-sm);cursor:pointer;color:var(--blue);transition:all .15s;flex-shrink:0;display:flex;align-items:center;gap:6px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px}
+.loc-btn:active{background:rgba(59,130,246,.25)}
+.loc-btn.loading{opacity:.6;pointer-events:none}
+.loc-display{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text2);margin-top:8px;display:none}
+.loc-display.show{display:block}
+.loc-coords{font-size:11px;color:var(--text3);margin-top:3px;font-family:monospace}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:calc(var(--nav) + 12px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--card2);border:1px solid var(--border2);border-radius:30px;padding:10px 20px;
+  font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all .25s;pointer-events:none;max-width:320px;text-align:center;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{background:var(--green-dim);border-color:rgba(16,185,129,.4);color:var(--green)}
+#toast.error{background:var(--red-dim);border-color:rgba(239,68,68,.4);color:var(--red)}
+
+/* ── Pipeline bar ── */
+.pipeline{display:flex;gap:0;border-radius:10px;overflow:hidden;height:8px;margin:8px 0}
+.pip-seg{height:100%;transition:width .4s ease;min-width:2px}
+
+/* ── Empty state ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center}
+.empty-icon{font-size:52px;margin-bottom:14px;opacity:.7}
+.empty-text{font-size:16px;font-weight:700;color:var(--text2)}
+.empty-sub{font-size:13px;color:var(--text3);margin-top:6px}
+
+/* ── Dashboard sections ── */
+.section{padding:16px 16px 0}
+.section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.recent-call{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.recent-call:last-child{border-bottom:none}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:calc(var(--nav) + 16px + var(--safe-bot));right:16px;z-index:100;
+  width:56px;height:56px;border-radius:50%;background:var(--primary);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 4px 20px var(--pri-glow);transition:transform .15s,box-shadow .15s}
+.fab:active{transform:scale(.92);box-shadow:0 2px 10px var(--pri-glow)}
+.fab svg{width:24px;height:24px;stroke:#fff;stroke-width:2.5}
+
+/* ── Divider ── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── Install banner ── */
+#install-banner{display:none;position:fixed;bottom:calc(var(--nav) + 10px + var(--safe-bot));left:10px;right:10px;z-index:300;
+  background:linear-gradient(135deg,#1a2744,#0d1e3d);border:1px solid var(--primary);border-radius:var(--radius-sm);
+  padding:12px 16px;display:flex;align-items:center;gap:12px}
+#install-banner .ib-text{flex:1;font-size:13px;font-weight:600}
+#install-banner .ib-sub{font-size:11px;color:var(--text2);margin-top:2px}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ════════ DASHBOARD PAGE ════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="ph">
+      <div class="ph-row">
+        <div>
+          <div class="ph-title" id="dash-greeting">Good Morning 👋</div>
+          <div class="ph-sub" id="dash-date">Loading...</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:24px;font-weight:900;color:var(--primary)" id="dash-callcount">0</div>
+          <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.5px">CALLS TODAY</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value" id="s-leads" style="color:var(--blue)">0</div>
+        <div class="stat-label">Total Leads</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-value" id="s-hot" style="color:var(--primary)">0</div>
+        <div class="stat-label">Hot Leads</div>
+        <div class="stat-sub">Interested + Negotiating</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="s-closed" style="color:var(--green)">0</div>
+        <div class="stat-label">Closed</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">📞</div>
+        <div class="stat-value" id="s-allcalls" style="color:var(--purple)">0</div>
+        <div class="stat-label">Total Calls</div>
+        <div class="stat-sub" id="s-today-mins">0 mins today</div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px">
+      <div class="section-title">Pipeline Status</div>
+      <div class="pipeline" id="pipeline-bar"></div>
+      <div id="pipeline-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+    </div>
+
+    <div class="section" style="margin-top:16px">
+      <div class="section-title">Quick Actions</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" style="flex:1" onclick="openLeadForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+          New Lead
+        </button>
+        <button class="btn btn-green" style="flex:1" onclick="openCallForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>
+          Log Call
+        </button>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px;padding-bottom:20px">
+      <div class="section-title">Today's Calls <span id="today-call-count" style="font-weight:900;color:var(--primary)">0</span></div>
+      <div id="today-calls-list"></div>
+    </div>
+  </div>
+
+  <!-- ════════ LEADS PAGE ════════ -->
+  <div class="page" id="page-leads">
+    <div class="ph">
+      <div class="ph-row">
+        <div class="ph-title">Leads</div>
+        <button class="btn btn-primary btn-sm" onclick="openLeadForm()">+ Add Lead</button>
+      </div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="search-input" id="lead-search" placeholder="Search name, company, phone..." oninput="renderLeads()">
+      </div>
+      <div class="chips" id="status-chips">
+        <div class="chip active" data-status="All" onclick="filterStatus('All')">All</div>
+        <div class="chip" data-status="New" onclick="filterStatus('New')">New</div>
+        <div class="chip" data-status="Contacted" onclick="filterStatus('Contacted')">Contacted</div>
+        <div class="chip" data-status="Interested" onclick="filterStatus('Interested')">Interested</div>
+        <div class="chip" data-status="Negotiating" onclick="filterStatus('Negotiating')">Negotiating</div>
+        <div class="chip" data-status="Closed" onclick="filterStatus('Closed')">Closed</div>
+        <div class="chip" data-status="Lost" onclick="filterStatus('Lost')">Lost</div>
+      </div>
+    </div>
+    <div style="padding:12px 16px 90px" id="leads-list"></div>
+  </div>
+
+  <!-- ════════ CALLS PAGE ════════ -->
+  <div class="page" id="page-calls">
+    <div class="ph">
+      <div class="ph-row">
+        <div class="ph-title">Call Log</div>
+        <button class="btn btn-green btn-sm" onclick="openCallForm()">+ Log Call</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input type="date" id="calls-date-filter" class="form-input" style="flex:1;font-size:14px;padding:9px 12px" onchange="renderCalls()">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('calls-date-filter').value='';renderCalls()">All</button>
+      </div>
+    </div>
+    <div style="padding:12px 16px 90px" id="calls-list"></div>
+  </div>
+
+</div>
+
+<!-- ════════ BOTTOM NAV ════════ -->
+<nav id="nav">
+  <div class="nav-indicator" id="nav-indicator"></div>
+  <button class="nav-btn active" id="nav-dashboard" onclick="goTo('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="nav-btn" id="nav-leads" onclick="goTo('leads')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    <span>Leads</span>
+  </button>
+  <button class="nav-btn" id="nav-calls" onclick="goTo('calls')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>
+    <span>Calls</span>
+  </button>
+</nav>
+
+<!-- ════════ FAB ════════ -->
+<button class="fab" id="page-fab" onclick="fabAction()" title="Add" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- ════════ MODAL ════════ -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Title</div>
+      <button class="btn-icon" onclick="closeModal()" style="padding:7px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA LAYER
+// ══════════════════════════════════════════════════════════════
+const DB = {
+  leads: [], calls: [],
+  load() {
+    try { this.leads = JSON.parse(localStorage.getItem('cratio_leads')||'[]'); } catch{this.leads=[];}
+    try { this.calls = JSON.parse(localStorage.getItem('cratio_calls')||'[]'); } catch{this.calls=[];}
+  },
+  save() {
+    localStorage.setItem('cratio_leads', JSON.stringify(this.leads));
+    localStorage.setItem('cratio_calls', JSON.stringify(this.calls));
+  },
+  addLead(l){ this.leads.unshift(l); this.save(); },
+  updateLead(l){ const i=this.leads.findIndex(x=>x.id===l.id); if(i>-1){this.leads[i]=l;this.save();} },
+  deleteLead(id){ this.leads=this.leads.filter(x=>x.id!==id); this.save(); },
+  addCall(c){ this.calls.unshift(c); this.save(); },
+  deleteCall(id){ this.calls=this.calls.filter(x=>x.id!==id); this.save(); },
+};
+DB.load();
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+const fmtTime=d=>d?new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const STATUS_COLORS = {
+  New:'var(--blue)', Contacted:'var(--purple)', Interested:'var(--green)',
+  Negotiating:'var(--yellow)', Closed:'#6ee7b7', Lost:'var(--red)'
+};
+const STATUS_HEX = {
+  New:'#3b82f6', Contacted:'#a78bfa', Interested:'#10b981',
+  Negotiating:'#f59e0b', Closed:'#6ee7b7', Lost:'#ef4444'
+};
+const STATUSES = ['New','Contacted','Interested','Negotiating','Closed','Lost'];
+const SOURCES = ['Cold Call','Referral','Walk-in','WhatsApp','LinkedIn','Exhibition','Website','Other'];
+const OUTCOMES = ['No Answer','Callback Later','Not Interested','Interested','Meeting Fixed','Closed Deal'];
+const OUTCOME_CLASSES = {
+  'No Answer':'noans','Callback Later':'callback','Not Interested':'notint',
+  'Interested':'int','Meeting Fixed':'meeting','Closed Deal':'closed'
+};
+
+// ══════════════════════════════════════════════════════════════
+// LOCATION SERVICE
+// ══════════════════════════════════════════════════════════════
+let _locCache = null;
+let _locExpiry = 0;
+
+async function getLocation(btnEl, displayEl) {
+  if (!navigator.geolocation) { showToast('Geolocation not supported on this device', 'error'); return null; }
+  if (btnEl) { btnEl.classList.add('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Locating...`; }
+  
+  // Add spin animation if not present
+  if (!document.querySelector('#spin-style')) {
+    const s = document.createElement('style');
+    s.id='spin-style'; s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(s);
+  }
+
+  return new Promise(resolve=>{
+    navigator.geolocation.getCurrentPosition(
+      async pos=>{
+        const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+        let address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        let shortAddr = address;
+        
+        // Reverse geocode with Nominatim (free, no API key)
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17&addressdetails=1`,{
+            headers:{'Accept-Language':'en','User-Agent':'CratioLeadManager/1.0'}
+          });
+          const data = await res.json();
+          if (data && data.display_name) {
+            const a = data.address||{};
+            const parts = [
+              a.road||a.pedestrian||a.footway,
+              a.suburb||a.neighbourhood||a.quarter,
+              a.city||a.town||a.village||a.county,
+              a.state
+            ].filter(Boolean);
+            shortAddr = parts.join(', ') || data.display_name.split(',').slice(0,3).join(',');
+            address = data.display_name;
+          }
+        } catch(e) { /* use coords if offline */ }
+
+        if (btnEl) {
+          btnEl.classList.remove('loading');
+          btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Captured!`;
+          btnEl.style.background='var(--green-dim)';btnEl.style.color='var(--green)';btnEl.style.borderColor='rgba(16,185,129,.4)';
+        }
+        if (displayEl) {
+          displayEl.classList.add('show');
+          displayEl.innerHTML = `<strong>📍 ${esc(shortAddr)}</strong><div class="loc-coords">Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)} | Accuracy: ±${Math.round(accuracy)}m</div>`;
+        }
+        resolve({lat, lng, address: shortAddr, fullAddress: address, accuracy});
+      },
+      err=>{
+        if (btnEl){ btnEl.classList.remove('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Get GPS`; }
+        const msg = err.code===1?'Location permission denied. Please allow in browser settings.':err.code===2?'Location unavailable. Check GPS settings.':'Location request timed out.';
+        showToast(msg,'error');
+        resolve(null);
+      },
+      {enableHighAccuracy:true, timeout:15000, maximumAge:30000}
+    );
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════
+let _toastTimer;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type?' '+type:'');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.className='', 3000);
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════════════════
+function showModal(title, body, footer) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-footer').innerHTML = footer||'';
+  document.getElementById('modal-overlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeModal(e) {
+  if (e && e.target!==document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('show');
+  document.body.style.overflow='';
+  _editingLead = null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ROUTER
+// ══════════════════════════════════════════════════════════════
+let _currentPage = 'dashboard';
+let _statusFilter = 'All';
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+
+  // Nav indicator
+  const idx = ['dashboard','leads','calls'].indexOf(page);
+  document.getElementById('nav-indicator').style.left = (idx*33.33)+'%';
+
+  // FAB
+  const fab = document.getElementById('page-fab');
+  fab.style.display = page==='dashboard'?'none':'flex';
+
+  _currentPage = page;
+  if (page==='dashboard') renderDashboard();
+  if (page==='leads') renderLeads();
+  if (page==='calls') renderCalls();
+}
+
+function fabAction() {
+  if (_currentPage==='leads') openLeadForm();
+  else if (_currentPage==='calls') openCallForm();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD RENDER
+// ══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const leads = DB.leads;
+  const calls = DB.calls;
+  const today = todayStr();
+  const todayCalls = calls.filter(c=>c.date===today);
+
+  // Greeting
+  const h = new Date().getHours();
+  document.getElementById('dash-greeting').textContent = (h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening')+' 👋';
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('dash-callcount').textContent = todayCalls.length;
+
+  // Stats
+  document.getElementById('s-leads').textContent = leads.length;
+  document.getElementById('s-hot').textContent = leads.filter(l=>l.status==='Interested'||l.status==='Negotiating').length;
+  document.getElementById('s-closed').textContent = leads.filter(l=>l.status==='Closed').length;
+  document.getElementById('s-allcalls').textContent = calls.length;
+  const todayMins = todayCalls.reduce((a,c)=>a+(parseInt(c.duration)||0),0);
+  document.getElementById('s-today-mins').textContent = todayMins+' mins today';
+  document.getElementById('today-call-count').textContent = todayCalls.length;
+
+  // Pipeline bar
+  const total = leads.length||1;
+  const pipBar = document.getElementById('pipeline-bar');
+  const pipLeg = document.getElementById('pipeline-legend');
+  pipBar.innerHTML = STATUSES.map(s=>{
+    const cnt = leads.filter(l=>l.status===s).length;
+    const pct = (cnt/total*100).toFixed(1);
+    return `<div class="pip-seg" style="width:${pct}%;background:${STATUS_HEX[s]}" title="${s}: ${cnt}"></div>`;
+  }).join('');
+  pipLeg.innerHTML = STATUSES.filter(s=>leads.some(l=>l.status===s)).map(s=>{
+    const cnt = leads.filter(l=>l.status===s).length;
+    return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:8px;height:8px;border-radius:50%;background:${STATUS_HEX[s]};display:inline-block;flex-shrink:0"></span>${s} <strong style="color:${STATUS_HEX[s]}">${cnt}</strong></div>`;
+  }).join('');
+
+  // Today's calls
+  const list = document.getElementById('today-calls-list');
+  if (!todayCalls.length) {
+    list.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No calls logged today yet</div>`;
+    return;
+  }
+  list.innerHTML = [...todayCalls].slice(0,8).map(c=>{
+    const lead = DB.leads.find(l=>l.id===c.leadId);
+    return `<div class="recent-call">
+      <div>
+        <div style="font-size:14px;font-weight:700">${esc(lead?lead.name:'Unknown Prospect')}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(c.outcome)}${c.duration?` · ${c.duration} min`:''}</div>
+        ${c.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px">📍 ${esc(c.address)}</div>`:''}
+      </div>
+      <div style="font-size:12px;color:var(--text2);text-align:right;flex-shrink:0;margin-left:12px">${fmtTime(c.calledAt)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEADS RENDER
+// ══════════════════════════════════════════════════════════════
+function filterStatus(status) {
+  _statusFilter = status;
+  document.querySelectorAll('#status-chips .chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.status===status);
+  });
+  renderLeads();
+}
+
+function renderLeads() {
+  const q = (document.getElementById('lead-search').value||'').toLowerCase();
+  let leads = DB.leads.filter(l=>{
+    const mq = !q||(l.name||'').toLowerCase().includes(q)||(l.company||'').toLowerCase().includes(q)||(l.phone||'').includes(q)||(l.email||'').toLowerCase().includes(q);
+    const ms = _statusFilter==='All'||l.status===_statusFilter;
+    return mq&&ms;
+  });
+
+  const el = document.getElementById('leads-list');
+  if (!leads.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">${q||_statusFilter!=='All'?'No matching leads':'No leads yet'}</div><div class="empty-sub">${q||_statusFilter!=='All'?'Try a different search or filter':'Tap + Add Lead to get started'}</div></div>`;
+    return;
+  }
+
+  el.innerHTML = leads.map(l=>`
+    <div class="lead-card" onclick="openLeadForm('${l.id}')">
+      <div class="lead-actions">
+        <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openCallForm(null,'${l.id}')">📞</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteLead('${l.id}')" style="padding:7px 9px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+      <div style="padding-right:90px">
+        <div class="lead-name">${esc(l.name)}</div>
+        ${l.company?`<div class="lead-company">🏢 ${esc(l.company)}</div>`:''}
+        <div class="lead-meta">
+          <span class="badge badge-${l.status}">${l.status}</span>
+          ${l.source?`<span style="font-size:11px;color:var(--text3)">${esc(l.source)}</span>`:''}
+        </div>
+        ${l.phone?`<div class="lead-phone">📱 ${esc(l.phone)}</div>`:''}
+        ${l.address?`<div class="lead-loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address)}</div>`:''}
+        ${l.notes?`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">"${esc(l.notes.slice(0,80))}${l.notes.length>80?'...':''}"</div>`:''}
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">Updated ${fmtDate(l.updatedAt)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// CALLS RENDER
+// ══════════════════════════════════════════════════════════════
+function renderCalls() {
+  const df = document.getElementById('calls-date-filter').value;
+  let calls = df ? DB.calls.filter(c=>c.date===df) : DB.calls;
+  calls = [...calls].sort((a,b)=>b.calledAt.localeCompare(a.calledAt));
+
+  const el = document.getElementById('calls-list');
+  if (!calls.length) {
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📞</div><div class="empty-text">${df?'No calls on this date':'No calls logged yet'}</div><div class="empty-sub">Tap + Log Call to record your activity</div></div>`;
+    return;
+  }
+  el.innerHTML = calls.map(c=>{
+    const lead = DB.leads.find(l=>l.id===c.leadId);
+    const cls = OUTCOME_CLASSES[c.outcome]||'noans';
+    return `<div class="call-card">
+      <div class="call-top">
+        <div>
+          <div class="call-name">${esc(lead?lead.name:c.prospectName||'Unknown Prospect')}</div>
+          ${lead?.company?`<div style="font-size:11px;color:var(--text2);margin-top:1px">${esc(lead.company)}</div>`:''}
+        </div>
+        <div class="call-time">
+          <div>${fmtDate(c.calledAt)}</div>
+          <div>${fmtTime(c.calledAt)}</div>
+          <button onclick="deleteCall('${c.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);margin-top:4px;display:block;margin-left:auto">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="call-outcome outcome-${cls}">${esc(c.outcome)}</span>
+        ${c.duration?`<span style="font-size:12px;color:var(--text2)">⏱ ${c.duration} min</span>`:''}
+      </div>
+      ${c.address?`<div style="font-size:12px;color:var(--text3);margin-top:7px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(c.address)}</div>`:''}
+      ${c.notes?`<div style="font-size:12px;color:var(--text2);margin-top:7px;padding-top:7px;border-top:1px solid var(--border)">${esc(c.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD FORM
+// ══════════════════════════════════════════════════════════════
+let _editingLead = null;
+let _locData = {};
+
+function openLeadForm(id) {
+  _editingLead = id ? DB.leads.find(l=>l.id===id)||null : null;
+  const l = _editingLead||{};
+  _locData = l.lat ? {lat:l.lat, lng:l.lng, address:l.address} : {};
+
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" id="lf-name" value="${esc(l.name||'')}" placeholder="Contact person name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <input class="form-input" id="lf-phone" type="tel" value="${esc(l.phone||'')}" placeholder="+91 98765 43210">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <input class="form-input" id="lf-company" value="${esc(l.company||'')}" placeholder="Company name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="lf-email" type="email" value="${esc(l.email||'')}" placeholder="email@co.com">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-input form-select" id="lf-status">
+          ${STATUSES.map(s=>`<option value="${s}"${(l.status||'New')===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Source</label>
+        <select class="form-input form-select" id="lf-source">
+          ${SOURCES.map(s=>`<option value="${s}"${(l.source||'Cold Call')===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Next Follow-up Date</label>
+      <input class="form-input" id="lf-followup" type="date" value="${esc(l.nextFollowUp||'')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lead Location</label>
+      <div class="input-group">
+        <input class="form-input" id="lf-addr" value="${esc(l.address||'')}" placeholder="Type address or use GPS">
+        <button class="loc-btn" id="lf-loc-btn" onclick="captureLoc('lf')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          GPS
+        </button>
+      </div>
+      <div class="loc-display ${l.lat?'show':''}" id="lf-loc-display">${l.lat?`<strong>📍 ${esc(l.address||'')}</strong><div class="loc-coords">Lat: ${l.lat} | Lng: ${l.lng}</div>`:''}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes / Remarks</label>
+      <textarea class="form-input" id="lf-notes" rows="3" placeholder="Key points, product interest, budget discussed...">${esc(l.notes||'')}</textarea>
+    </div>
+  `;
+
+  showModal(_editingLead?'Edit Lead':'New Lead', body,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" style="flex:2" onclick="saveLead()">💾 Save Lead</button>`
+  );
+}
+
+async function captureLoc(prefix) {
+  const btn = document.getElementById(prefix+'-loc-btn');
+  const disp = document.getElementById(prefix+'-loc-display');
+  const loc = await getLocation(btn, disp);
+  if (loc) {
+    _locData = loc;
+    const addrInp = document.getElementById(prefix+'-addr');
+    if (addrInp && !addrInp.value) addrInp.value = loc.address;
+    else if (addrInp) addrInp.value = loc.address;
+  }
+}
+
+function saveLead() {
+  const name = document.getElementById('lf-name').value.trim();
+  if (!name) { showToast('Please enter the contact name', 'error'); document.getElementById('lf-name').focus(); return; }
+
+  const addrField = document.getElementById('lf-addr').value.trim();
+  const lead = {
+    id: _editingLead ? _editingLead.id : uid(),
+    name,
+    phone: document.getElementById('lf-phone').value.trim(),
+    company: document.getElementById('lf-company').value.trim(),
+    email: document.getElementById('lf-email').value.trim(),
+    status: document.getElementById('lf-status').value,
+    source: document.getElementById('lf-source').value,
+    nextFollowUp: document.getElementById('lf-followup').value,
+    address: addrField || _locData.address || '',
+    lat: _locData.lat || (_editingLead?.lat||''),
+    lng: _locData.lng || (_editingLead?.lng||''),
+    notes: document.getElementById('lf-notes').value.trim(),
+    createdAt: _editingLead ? _editingLead.createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (_editingLead) { DB.updateLead(lead); showToast('Lead updated ✓', 'success'); }
+  else { DB.addLead(lead); showToast('Lead added ✓', 'success'); }
+
+  closeModal();
+  renderLeads();
+  renderDashboard();
+  _locData = {};
+}
+
+function deleteLead(id) {
+  if (!confirm('Delete this lead? This cannot be undone.')) return;
+  DB.deleteLead(id);
+  showToast('Lead deleted');
+  renderLeads();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CALL FORM
+// ══════════════════════════════════════════════════════════════
+let _callLocData = {};
+
+function openCallForm(e, prefillLeadId) {
+  _callLocData = {};
+  const leads = DB.leads;
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Lead / Prospect</label>
+      <select class="form-input form-select" id="cf-lead">
+        <option value="">— Stranger / Walk-in —</option>
+        ${leads.map(l=>`<option value="${l.id}"${prefillLeadId===l.id?' selected':''}>${esc(l.name)}${l.company?' ('+l.company+')':''}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" id="cf-prospect-wrap" style="display:none">
+      <label class="form-label">Prospect Name (if not in leads)</label>
+      <input class="form-input" id="cf-prospect" placeholder="Name of person called">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">Outcome *</label>
+        <select class="form-input form-select" id="cf-outcome">
+          ${OUTCOMES.map(o=>`<option>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (min)</label>
+        <input class="form-input" id="cf-dur" type="number" min="0" max="999" placeholder="5">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Location While Calling</label>
+      <button class="loc-btn" id="cf-loc-btn" onclick="captureCallLoc()" style="width:100%;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        Capture My Location (GPS)
+      </button>
+      <div class="loc-display" id="cf-loc-display"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Call Notes</label>
+      <textarea class="form-input" id="cf-notes" rows="3" placeholder="What was discussed? Key points, objections, follow-up needed..."></textarea>
+    </div>
+  `;
+
+  showModal('Log a Call', body,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-green" style="flex:2" onclick="saveCall()">📞 Log Call</button>`
+  );
+
+  // Show prospect name if no lead selected
+  setTimeout(()=>{
+    const sel = document.getElementById('cf-lead');
+    if (sel) sel.addEventListener('change',()=>{
+      document.getElementById('cf-prospect-wrap').style.display = sel.value?'none':'block';
+    });
+  }, 100);
+}
+
+async function captureCallLoc() {
+  const btn = document.getElementById('cf-loc-btn');
+  const disp = document.getElementById('cf-loc-display');
+  const loc = await getLocation(btn, disp);
+  if (loc) _callLocData = loc;
+}
+
+function saveCall() {
+  const outcome = document.getElementById('cf-outcome').value;
+  const leadId = document.getElementById('cf-lead').value;
+  const prospectName = document.getElementById('cf-prospect')?.value.trim()||'';
+  const call = {
+    id: uid(),
+    leadId,
+    prospectName: leadId ? '' : prospectName,
+    outcome,
+    duration: document.getElementById('cf-dur').value||'',
+    address: _callLocData.address||'',
+    lat: _callLocData.lat||'',
+    lng: _callLocData.lng||'',
+    notes: document.getElementById('cf-notes').value.trim(),
+    calledAt: new Date().toISOString(),
+    date: todayStr(),
+  };
+  DB.addCall(call);
+  showToast('Call logged ✓', 'success');
+  closeModal();
+  if (_currentPage==='calls') renderCalls();
+  renderDashboard();
+  _callLocData = {};
+  if (navigator.vibrate) navigator.vibrate(50);
+}
+
+function deleteCall(id) {
+  if (!confirm('Delete this call log?')) return;
+  DB.deleteCall(id);
+  showToast('Call log deleted');
+  renderCalls();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PWA MANIFEST & INSTALL
+// ══════════════════════════════════════════════════════════════
+(function setupPWA(){
+  // Inject manifest
+  const manifest = {
+    name:'Cratio Lead Manager',
+    short_name:'Cratio CRM',
+    description:'Personal sales lead & call tracker',
+    start_url:'.',
+    display:'standalone',
+    background_color:'#060a13',
+    theme_color:'#060a13',
+    orientation:'portrait',
+    icons:[
+      {src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23060a13"/><text y=".9em" font-size="80">📊</text></svg>', sizes:'192x192', type:'image/svg+xml'},
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel='manifest'; link.href=url;
+  document.head.appendChild(link);
+
+  // Install prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault(); deferredPrompt=e;
+    // Show subtle banner after 3s
+    setTimeout(()=>{
+      const b = document.createElement('div');
+      b.style.cssText='position:fixed;bottom:calc(68px + 10px);left:10px;right:10px;z-index:300;background:linear-gradient(135deg,#1a2744,#0d1e3d);border:1px solid #f97316;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;animation:fadeSlide .3s ease';
+      b.innerHTML=`<span style="font-size:22px">📱</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#dde6f5">Install Cratio CRM</div><div style="font-size:11px;color:#7a92b8;margin-top:2px">Add to home screen for app experience</div></div><button onclick="installApp()" style="background:#f97316;border:none;border-radius:8px;padding:7px 14px;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:Outfit,sans-serif">Install</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#4b5e7e;cursor:pointer;font-size:18px;padding:0 4px">×</button>`;
+      document.body.appendChild(b);
+      window._installBanner = b;
+    }, 3000);
+  });
+  window.installApp = async function(){
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const {outcome} = await deferredPrompt.userChoice;
+    if (outcome==='accepted') { showToast('App installed! 🎉','success'); }
+    deferredPrompt=null;
+    if(window._installBanner) window._installBanner.remove();
+  };
+
+  // Register service worker for offline
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE='cratio-v1';
+const ASSETS=['.'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener('fetch',e=>e.respondWith(
+  fetch(e.request).catch(()=>caches.match(e.request))
+));`;
+    const swBlob = new Blob([swCode],{type:'application/javascript'});
+    // Note: blob SW has limited scope but provides basic offline shell
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Set today's date in calls filter
+  document.getElementById('calls-date-filter').value = todayStr();
+  goTo('dashboard');
+});
+
+// Handle back button
+window.addEventListener('popstate', ()=>{
+  if (document.getElementById('modal-overlay').classList.contains('show')) closeModal();
+});
+</script>
+</body>
+</html>
