@@ -51,7 +51,7 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .nav-btn.active{color:var(--primary)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
 .nav-btn span{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:33.33%;transition:left .2s cubic-bezier(.4,0,.2,1)}
+.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:25%;transition:left .2s cubic-bezier(.4,0,.2,1)}
 
 /* ── Page Header ── */
 .ph{position:sticky;top:0;z-index:50;background:rgba(6,10,19,.97);backdrop-filter:blur(20px);
@@ -212,6 +212,54 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 /* ── Divider ── */
 .divider{height:1px;background:var(--border);margin:16px 0}
 
+
+/* ════ TIMELINE STYLES ════ */
+#timeline-map{width:100%;height:280px;z-index:1;border-bottom:2px solid var(--border);background:#0a1628}
+.leaflet-tile{filter:brightness(.75) saturate(.6) hue-rotate(195deg)}
+.leaflet-container{background:#0a1628}
+.leaflet-popup-content-wrapper{background:#111e36;color:#dde6f5;border:1px solid #1f3360;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.leaflet-popup-tip{background:#111e36}
+.leaflet-popup-content{font-family:'Outfit',sans-serif;font-size:13px;line-height:1.5;margin:10px 14px}
+.popup-title{font-weight:800;font-size:14px;margin-bottom:4px}
+.popup-sub{color:#7a92b8;font-size:12px}
+.map-controls{display:flex;gap:8px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;align-items:center}
+.map-controls::-webkit-scrollbar{display:none}
+.map-toggle{flex-shrink:0;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;background:var(--card2);color:var(--text2);border:1px solid var(--border);transition:all .13s}
+.map-toggle.on{background:var(--pri-dim);color:var(--primary);border-color:rgba(249,115,22,.4)}
+.checkin-bar{padding:11px 16px;background:var(--bg);border-bottom:1px solid var(--border)}
+.checkin-btn{width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(249,115,22,.04));border:1.5px solid rgba(249,115,22,.4);color:var(--primary);font-weight:800;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;font-family:'Outfit',sans-serif}
+.checkin-btn:active{transform:scale(.97)}
+.checkin-btn.loading{opacity:.7;pointer-events:none}
+.pulse-dot{width:10px;height:10px;border-radius:50%;background:var(--primary);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tl-summary{margin:12px 16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);display:flex}
+.tl-sum-item{flex:1;text-align:center;padding:0 4px}
+.tl-sum-item+.tl-sum-item{border-left:1px solid var(--border)}
+.tl-sum-val{font-size:18px;font-weight:900;color:var(--primary)}
+.tl-sum-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.tl-item{display:flex;gap:0;padding:0 16px;position:relative}
+.tl-line-col{display:flex;flex-direction:column;align-items:center;width:44px;flex-shrink:0}
+.tl-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:2;border:2px solid transparent}
+.tl-dot.call{background:var(--green-dim);border-color:var(--green)}
+.tl-dot.lead{background:var(--blue-dim);border-color:var(--blue)}
+.tl-dot.checkin{background:var(--pri-dim);border-color:var(--primary)}
+.tl-vline{flex:1;width:2px;background:var(--border);min-height:16px;margin:4px 0}
+.tl-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px;margin-left:10px;transition:border-color .15s}
+.tl-card:active{border-color:var(--primary)}
+.tl-title{font-size:14px;font-weight:800;margin-bottom:2px}
+.tl-sub{font-size:12px;color:var(--text2);margin-bottom:4px}
+.tl-addr{font-size:12px;color:var(--text3);margin-top:5px;display:flex;align-items:flex-start;gap:5px}
+.tl-meta{font-size:11px;color:var(--text3);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tl-badge{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.4px}
+.tl-badge.call{background:var(--green-dim);color:var(--green)}
+.tl-badge.lead{background:var(--blue-dim);color:var(--blue)}
+.tl-badge.checkin{background:var(--pri-dim);color:var(--primary)}
+.tl-date-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px 8px;font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+.tl-date-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+
 /* ── Install banner ── */
 #install-banner{display:none;position:fixed;bottom:calc(var(--nav) + 10px + var(--safe-bot));left:10px;right:10px;z-index:300;
   background:linear-gradient(135deg,#1a2744,#0d1e3d);border:1px solid var(--primary);border-radius:var(--radius-sm);
@@ -281,6 +329,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>
           Log Call
         </button>
+        <button class="btn" style="flex:1;background:rgba(6,182,212,.12);color:#06b6d4;border:1px solid rgba(6,182,212,.3)" onclick="goTo('timeline');quickCheckin()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          Check In
+        </button>
       </div>
     </div>
 
@@ -329,6 +381,38 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div style="padding:12px 16px 90px" id="calls-list"></div>
   </div>
 
+
+  <!-- ════════ TIMELINE ════════ -->
+  <div class="page" id="page-timeline">
+    <div id="timeline-map"></div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--primary)"></div>Check-in</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Call</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Lead</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Route</div>
+    </div>
+    <div class="map-controls">
+      <input type="date" id="tl-date" class="form-input" style="font-size:13px;padding:7px 11px;width:155px;flex-shrink:0" onchange="renderTimeline()">
+      <button class="map-toggle on" id="tog-checkin" onclick="toggleLyr('checkin',this)">📍 Check-ins</button>
+      <button class="map-toggle on" id="tog-calls" onclick="toggleLyr('calls',this)">📞 Calls</button>
+      <button class="map-toggle on" id="tog-leads" onclick="toggleLyr('leads',this)">👤 Leads</button>
+      <button class="map-toggle on" id="tog-route" onclick="toggleLyr('route',this)">〰 Route</button>
+    </div>
+    <div class="checkin-bar">
+      <button class="checkin-btn" id="ci-main-btn" onclick="quickCheckin()">
+        <div class="pulse-dot"></div>📍 Check In at Current Location
+      </button>
+    </div>
+    <div class="tl-summary" id="tl-summary" style="display:none">
+      <div class="tl-sum-item"><div class="tl-sum-val" id="tl-s-places">0</div><div class="tl-sum-lbl">Places</div></div>
+      <div class="tl-sum-item"><div class="tl-sum-val" id="tl-s-calls">0</div><div class="tl-sum-lbl">Calls</div></div>
+      <div class="tl-sum-item"><div class="tl-sum-val" id="tl-s-dist">0km</div><div class="tl-sum-lbl">Distance</div></div>
+      <div class="tl-sum-item"><div class="tl-sum-val" id="tl-s-hrs">0h</div><div class="tl-sum-lbl">Active</div></div>
+    </div>
+    <div id="tl-list" style="padding-bottom:90px"></div>
+  </div>
+
+
 </div>
 
 <!-- ════════ BOTTOM NAV ════════ -->
@@ -345,6 +429,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
   <button class="nav-btn" id="nav-calls" onclick="goTo('calls')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>
     <span>Calls</span>
+  </button>
+  <button class="nav-btn" id="nav-timeline" onclick="goTo('timeline')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span>Timeline</span>
   </button>
 </nav>
 
@@ -515,6 +603,7 @@ function closeModal(e) {
 // ROUTER
 // ══════════════════════════════════════════════════════════════
 let _currentPage = 'dashboard';
+const PAGES=['dashboard','leads','calls','timeline'];;
 let _statusFilter = 'All';
 
 function goTo(page) {
@@ -524,12 +613,12 @@ function goTo(page) {
   document.getElementById('nav-'+page).classList.add('active');
 
   // Nav indicator
-  const idx = ['dashboard','leads','calls'].indexOf(page);
-  document.getElementById('nav-indicator').style.left = (idx*33.33)+'%';
+  const idx = PAGES.indexOf(page);
+  document.getElementById('nav-indicator').style.left = (idx*25)+'%';
 
   // FAB
   const fab = document.getElementById('page-fab');
-  fab.style.display = page==='dashboard'?'none':'flex';
+  fab.style.display=(page==='leads'||page==='calls')?'flex':'none';
 
   _currentPage = page;
   if (page==='dashboard') renderDashboard();
@@ -911,6 +1000,182 @@ function deleteCall(id) {
   renderDashboard();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// CHECKINS DB
+// ══════════════════════════════════════════════════════════════
+DB.checkins = (()=>{ try{ return JSON.parse(localStorage.getItem('cratio_checkins')||'[]'); }catch{ return []; } })();
+const _saveCI = () => localStorage.setItem('cratio_checkins', JSON.stringify(DB.checkins));
+
+// ══════════════════════════════════════════════════════════════
+// TIMELINE MAP
+// ══════════════════════════════════════════════════════════════
+let _map=null, _mapInited=false;
+const _lyrs={checkin:null, calls:null, leads:null, route:null};
+const _lyrOn={checkin:true, calls:true, leads:true, route:true};
+
+function initMap(){
+  if(_mapInited) return; _mapInited=true;
+  _map = L.map('timeline-map',{zoomControl:true,attributionControl:false}).setView([20.59,78.96],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(_map);
+  try{ L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',{maxZoom:20,opacity:.75}).addTo(_map); }catch(e){}
+}
+
+function mkIcon(emoji,bg){
+  return L.divIcon({
+    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:3px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 12px rgba(0,0,0,.55)">${emoji}</div>`,
+    iconSize:[36,36],iconAnchor:[18,18],popupAnchor:[0,-20],className:''
+  });
+}
+
+function haversine(a,b,c,d){
+  const R=6371,dLat=(c-a)*Math.PI/180,dLng=(d-b)*Math.PI/180;
+  return R*2*Math.atan2(Math.sqrt(Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2),Math.sqrt(1-(Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2)));
+}
+
+function toggleLyr(key,btn){
+  _lyrOn[key]=!_lyrOn[key];
+  btn.classList.toggle('on',_lyrOn[key]);
+  if(_lyrs[key]){ if(_lyrOn[key]) _lyrs[key].addTo(_map); else _map.removeLayer(_lyrs[key]); }
+}
+
+function renderTimeline(){
+  if(!_mapInited) initMap();
+  setTimeout(()=>_map.invalidateSize(),200);
+
+  const selDate = document.getElementById('tl-date').value || todayStr();
+  const events = [];
+
+  DB.checkins.filter(c=>c.date===selDate&&c.lat&&c.lng).forEach(c=>{
+    events.push({type:'checkin',ts:c.checkedAt,lat:+c.lat,lng:+c.lng,address:c.address||'',label:c.note||'Check-in',sub:'',id:c.id,obj:c});
+  });
+  DB.calls.filter(c=>c.date===selDate&&c.lat&&c.lng).forEach(c=>{
+    const lead=DB.leads.find(l=>l.id===c.leadId);
+    events.push({type:'call',ts:c.calledAt,lat:+c.lat,lng:+c.lng,address:c.address||'',label:lead?lead.name:c.prospectName||'Prospect',sub:c.outcome,id:c.id,obj:c});
+  });
+  DB.leads.filter(l=>l.lat&&l.lng&&(l.updatedAt||'').slice(0,10)===selDate).forEach(l=>{
+    events.push({type:'lead',ts:l.updatedAt,lat:+l.lat,lng:+l.lng,address:l.address||'',label:l.name,sub:l.company||l.status,id:l.id,obj:l});
+  });
+  events.sort((a,b)=>a.ts.localeCompare(b.ts));
+
+  // Clear map layers
+  Object.values(_lyrs).forEach(l=>{ if(l&&_map.hasLayer(l)) _map.removeLayer(l); });
+  _lyrs.checkin=L.layerGroup(); _lyrs.calls=L.layerGroup(); _lyrs.leads=L.layerGroup(); _lyrs.route=L.layerGroup();
+
+  const lls=[];
+  events.forEach((ev,i)=>{
+    const ll=[ev.lat,ev.lng]; lls.push(ll);
+    let icon,lyrKey;
+    if(ev.type==='checkin'){icon=mkIcon('📍','#f97316');lyrKey='checkin';}
+    else if(ev.type==='call'){icon=mkIcon('📞','#10b981');lyrKey='calls';}
+    else{icon=mkIcon('👤','#3b82f6');lyrKey='leads';}
+    L.marker(ll,{icon}).bindPopup(`<div class="popup-title">${ev.label}</div>${ev.sub?`<div class="popup-sub">${ev.sub}</div>`:''}<div class="popup-sub" style="margin-top:6px">📍 ${ev.address||'Unknown'}</div><div class="popup-sub">🕐 ${fmtTime(ev.ts)}</div>`).addTo(_lyrs[lyrKey]);
+    if(events.length>1){ L.marker(ll,{icon:L.divIcon({html:`<div style="background:#fff;color:#060a13;width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4);position:relative;left:20px;top:-36px">${i+1}</div>`,iconSize:[16,16],iconAnchor:[0,0],className:''}),interactive:false}).addTo(_lyrs[lyrKey]); }
+  });
+
+  if(lls.length>1) L.polyline(lls,{color:'#a78bfa',weight:3,opacity:.8,dashArray:'7,9'}).addTo(_lyrs.route);
+
+  Object.entries(_lyrs).forEach(([k,l])=>{ if(_lyrOn[k]) l.addTo(_map); });
+  if(lls.length>0){ lls.length===1?_map.setView(lls[0],15):_map.fitBounds(lls,{padding:[40,40]}); }
+
+  // Summary
+  let totalDist=0;
+  for(let i=1;i<lls.length;i++) totalDist+=haversine(lls[i-1][0],lls[i-1][1],lls[i][0],lls[i][1]);
+  const firstTs=events.length?new Date(events[0].ts):null;
+  const lastTs=events.length?new Date(events[events.length-1].ts):null;
+  const activeHrs=firstTs&&lastTs?((lastTs-firstTs)/3600000).toFixed(1):0;
+  document.getElementById('tl-summary').style.display=events.length?'flex':'none';
+  document.getElementById('tl-s-places').textContent=events.length;
+  document.getElementById('tl-s-calls').textContent=events.filter(e=>e.type==='call').length;
+  document.getElementById('tl-s-dist').textContent=totalDist.toFixed(1)+'km';
+  document.getElementById('tl-s-hrs').textContent=activeHrs+'h';
+
+  // Build list
+  const listEl=document.getElementById('tl-list');
+  if(!events.length){
+    listEl.innerHTML=`<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">No location data for this date</div><div class="empty-sub">Tap "Check In" or log calls with GPS location to build your timeline</div></div>`;
+    return;
+  }
+  let html='';
+  events.forEach((ev,i)=>{
+    const isLast=i===events.length-1;
+    const icon=ev.type==='checkin'?'📍':ev.type==='call'?'📞':'👤';
+    const dist=i>0?haversine(events[i-1].lat,events[i-1].lng,ev.lat,ev.lng).toFixed(2)+'km from prev':'Start';
+    const delBtn=ev.type==='checkin'?`<button onclick="event.stopPropagation();deleteCheckin('${ev.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">🗑</button>`:'';
+    html+=`<div class="tl-item">
+      <div class="tl-line-col">
+        <div class="tl-dot ${ev.type}">${icon}</div>
+        ${!isLast?'<div class="tl-vline"></div>':''}
+      </div>
+      <div class="tl-card" onclick="if(_map)_map.setView([${ev.lat},${ev.lng}],16)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="tl-title">${esc(ev.label)}</div>${delBtn}
+        </div>
+        ${ev.sub?`<div class="tl-sub">${esc(ev.sub)}</div>`:''}
+        ${ev.address?`<div class="tl-addr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(ev.address)}</div>`:''}
+        <div class="tl-meta">
+          <span class="tl-badge ${ev.type}">${ev.type.toUpperCase()}</span>
+          <span>🕐 ${fmtTime(ev.ts)}</span>
+          <span>${dist}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  listEl.innerHTML=html;
+}
+
+// ── Quick Check-in ──
+let _ciRunning=false;
+function quickCheckin(){
+  if(_ciRunning)return; _ciRunning=true;
+  const btn=document.getElementById('ci-main-btn');
+  if(btn){btn.classList.add('loading');btn.textContent='Getting your location...';}
+  if(!navigator.geolocation){showToast('GPS not available on this device','error');resetCiBtn();return;}
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+    let address=lat.toFixed(5)+', '+lng.toFixed(5);
+    try{
+      const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=17&addressdetails=1',{headers:{'Accept-Language':'en','User-Agent':'CratioLeadManager/1.0'}});
+      const d=await r.json();
+      if(d&&d.address){const a=d.address;const p=[a.road||a.pedestrian||a.footway,a.suburb||a.neighbourhood,a.city||a.town||a.village,a.state].filter(Boolean);address=p.join(', ')||address;}
+    }catch(e){}
+    _ciRunning=false; resetCiBtn();
+    showModal('📍 Check In',
+      `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:5px">📍 ${esc(address)}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:monospace">Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)} | ±${Math.round(accuracy)}m</div>
+       </div>
+       <div class="form-group"><label class="form-label">Note (optional)</label><input class="form-input" id="ci-note" placeholder="e.g. Visiting client, Market area, Office..." autofocus></div>
+       <input type="hidden" id="ci-lat" value="${lat}"><input type="hidden" id="ci-lng" value="${lng}"><input type="hidden" id="ci-addr" value="${esc(address)}">`,
+      `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:2" onclick="saveCheckin()">📍 Save Check-in</button>`
+    );
+  },err=>{
+    _ciRunning=false; resetCiBtn();
+    showToast(err.code===1?'Location permission denied. Allow GPS in browser settings.':'Could not get location, try again.','error');
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+
+function resetCiBtn(){
+  const btn=document.getElementById('ci-main-btn');
+  if(btn){btn.classList.remove('loading');btn.innerHTML='<div class="pulse-dot"></div>📍 Check In at Current Location';}
+}
+
+function saveCheckin(){
+  const ci={id:uid(),lat:document.getElementById('ci-lat').value,lng:document.getElementById('ci-lng').value,address:document.getElementById('ci-addr').value,note:document.getElementById('ci-note').value.trim(),checkedAt:new Date().toISOString(),date:todayStr()};
+  DB.checkins.unshift(ci); _saveCI();
+  showToast('Check-in saved! 📍','success');
+  closeModal();
+  if(navigator.vibrate)navigator.vibrate([50,30,50]);
+  if(_currentPage==='timeline')renderTimeline();
+  renderDashboard();
+}
+
+function deleteCheckin(id){
+  if(!confirm('Delete this check-in?'))return;
+  DB.checkins=DB.checkins.filter(c=>c.id!==id); _saveCI();
+  showToast('Deleted'); renderTimeline();
+}
+
 // ══════════════════════════════════════════════════════════════
 // PWA MANIFEST & INSTALL
 // ══════════════════════════════════════════════════════════════
@@ -978,6 +1243,7 @@ self.addEventListener('fetch',e=>e.respondWith(
 document.addEventListener('DOMContentLoaded', ()=>{
   // Set today's date in calls filter
   document.getElementById('calls-date-filter').value = todayStr();
+  document.getElementById('tl-date').value = todayStr();
   goTo('dashboard');
 });
 
