@@ -609,66 +609,143 @@ const OUTCOME_CLASSES = {
 };
 
 // ══════════════════════════════════════════════════════════════
-// LOCATION SERVICE
+// LOCATION SERVICE — High Accuracy (multi-sample, best pick)
 // ══════════════════════════════════════════════════════════════
-let _locCache = null;
-let _locExpiry = 0;
 
 async function getLocation(btnEl, displayEl) {
   if (!navigator.geolocation) { showToast('Geolocation not supported on this device', 'error'); return null; }
-  if (btnEl) { btnEl.classList.add('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Locating...`; }
-  
-  // Add spin animation if not present
-  if (!document.querySelector('#spin-style')) {
-    const s = document.createElement('style');
-    s.id='spin-style'; s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
-    document.head.appendChild(s);
+
+  if (btnEl) {
+    btnEl.classList.add('loading');
+    btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Searching satellites...`;
   }
 
-  return new Promise(resolve=>{
-    navigator.geolocation.getCurrentPosition(
-      async pos=>{
-        const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-        let address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        let shortAddr = address;
-        
-        // Reverse geocode with Nominatim (free, no API key)
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17&addressdetails=1`,{
-            headers:{'Accept-Language':'en','User-Agent':'CratioLeadManager/1.0'}
-          });
-          const data = await res.json();
-          if (data && data.display_name) {
-            const a = data.address||{};
-            const parts = [
-              a.road||a.pedestrian||a.footway,
-              a.suburb||a.neighbourhood||a.quarter,
-              a.city||a.town||a.village||a.county,
-              a.state
-            ].filter(Boolean);
-            shortAddr = parts.join(', ') || data.display_name.split(',').slice(0,3).join(',');
-            address = data.display_name;
-          }
-        } catch(e) { /* use coords if offline */ }
+  return new Promise(resolve => {
+    const readings = [];
+    let watchId = null;
+    let settled = false;
 
-        if (btnEl) {
-          btnEl.classList.remove('loading');
-          btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Captured!`;
-          btnEl.style.background='var(--green-dim)';btnEl.style.color='var(--green)';btnEl.style.borderColor='rgba(16,185,129,.4)';
-        }
+    function finish(best) {
+      if (settled) return;
+      settled = true;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      clearTimeout(timer);
+
+      const { latitude: lat, longitude: lng, accuracy } = best;
+
+      if (btnEl) {
+        btnEl.classList.remove('loading');
+        const accText = accuracy < 15 ? '🎯 Precise' : accuracy < 40 ? '✅ Good' : accuracy < 100 ? '⚠️ Fair' : '📶 Coarse';
+        btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> ${accText} ±${Math.round(accuracy)}m`;
+        btnEl.style.background    = accuracy < 40  ? 'var(--green-dim)' : accuracy < 100 ? 'var(--yel-dim)' : 'var(--pri-dim)';
+        btnEl.style.color         = accuracy < 40  ? 'var(--green)'     : accuracy < 100 ? 'var(--yellow)'  : 'var(--primary)';
+        btnEl.style.borderColor   = accuracy < 40  ? 'rgba(16,185,129,.4)' : accuracy < 100 ? 'rgba(245,158,11,.4)' : 'rgba(249,115,22,.4)';
+      }
+
+      (async () => {
+        let shortAddr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'CratioLeadManager/1.0' } }
+          );
+          const data = await res.json();
+          if (data && data.address) {
+            const a = data.address;
+            const parts = [
+              a.building || a.amenity || a.shop || a.office,
+              a.house_number ? (a.road||'') + ' ' + a.house_number : (a.road || a.pedestrian || a.footway || a.path),
+              a.suburb || a.neighbourhood || a.quarter || a.residential,
+              a.city || a.town || a.village || a.county,
+              a.state
+            ].map(s=>(s||'').trim()).filter(Boolean);
+            shortAddr = parts.join(', ') || data.display_name.split(',').slice(0,4).join(',').trim();
+          }
+        } catch(e) { /* offline — keep coords */ }
+
         if (displayEl) {
           displayEl.classList.add('show');
-          displayEl.innerHTML = `<strong>📍 ${esc(shortAddr)}</strong><div class="loc-coords">Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)} | Accuracy: ±${Math.round(accuracy)}m</div>`;
+          const accColor = accuracy < 40 ? 'var(--green)' : accuracy < 100 ? 'var(--yellow)' : 'var(--primary)';
+          displayEl.innerHTML = `<strong>📍 ${esc(shortAddr)}</strong>
+            <div class="loc-coords" style="margin-top:5px;display:flex;gap:10px;flex-wrap:wrap">
+              <span>Lat: ${lat.toFixed(7)}</span><span>Lng: ${lng.toFixed(7)}</span>
+              <span style="color:${accColor};font-weight:700">±${Math.round(accuracy)}m accuracy</span>
+            </div>`;
         }
-        resolve({lat, lng, address: shortAddr, fullAddress: address, accuracy});
+        resolve({ lat, lng, address: shortAddr, accuracy });
+      })();
+    }
+
+    // ── 40-second hard timeout — cold-start GPS needs this on Android ──
+    const timer = setTimeout(() => {
+      if (settled) return;
+      if (readings.length > 0) {
+        // Use best reading we have
+        finish(readings.reduce((b, r) => r.accuracy < b.accuracy ? r : b));
+      } else {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        settled = true;
+        if (btnEl) { btnEl.classList.remove('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Try Again`; }
+        showToast('GPS timeout. Step outside, keep phone still and retry.', 'error');
+        resolve(null);
+      }
+    }, 40000);
+
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        if (settled) return;
+        const c = pos.coords;
+
+        // ── FILTER 1: Discard obviously coarse readings (>500m) on first attempt only ──
+        // These are cell-tower fixes that are wildly wrong — ignore and wait for GPS
+        if (readings.length === 0 && c.accuracy > 500) {
+          if (btnEl) btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Weak signal (±${Math.round(c.accuracy)}m) — waiting for GPS satellite...`;
+          return; // skip this reading, wait for real GPS fix
+        }
+
+        readings.push(c);
+        const count = readings.length;
+
+        // Live accuracy bar feedback
+        if (btnEl) {
+          const a = Math.round(c.accuracy);
+          const bar = a<=15?'████':a<=40?'███░':a<=100?'██░░':a<=200?'█░░░':'░░░░';
+          btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> ${bar} ±${a}m ${count>=3?'— locking...':'— warming up...'}`;
+        }
+
+        // ── FILTER 2: Need at least 3 readings before accepting ──
+        // The FIRST 1-2 readings are almost always cell-tower/WiFi (inaccurate).
+        // Real GPS satellite lock starts from reading 3+ onwards outdoors.
+        if (count < 3) return;
+
+        // ── Accept: ≤20m after 3+ readings = real GPS satellite lock ──
+        if (c.accuracy <= 20) {
+          finish(c);
+          return;
+        }
+
+        // ── Accept best of 15 readings ──
+        if (count >= 15) {
+          finish(readings.reduce((b, r) => r.accuracy < b.accuracy ? r : b));
+        }
       },
-      err=>{
-        if (btnEl){ btnEl.classList.remove('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Get GPS`; }
-        const msg = err.code===1?'Location permission denied. Please allow in browser settings.':err.code===2?'Location unavailable. Check GPS settings.':'Location request timed out.';
-        showToast(msg,'error');
+      err => {
+        if (settled) return;
+        clearTimeout(timer);
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        settled = true;
+        if (btnEl) { btnEl.classList.remove('loading'); btnEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Get GPS`; }
+        const msg = err.code===1 ? 'Permission denied. Allow Location in browser Settings.' :
+                    err.code===2 ? 'GPS signal not found. Go outside and retry.' :
+                    'GPS timed out. Step outside, keep phone still.';
+        showToast(msg, 'error');
         resolve(null);
       },
-      {enableHighAccuracy:true, timeout:15000, maximumAge:30000}
+      {
+        enableHighAccuracy: true,  // Forces GPS chip, not cell/WiFi
+        timeout: 40000,            // 40s per reading attempt
+        maximumAge: 0              // Never use cached — always fresh fix
+      }
     );
   });
 }
@@ -1291,46 +1368,44 @@ function renderTimeline(){
 
 // ── Quick Check-in ──
 let _ciRunning=false;
-function quickCheckin(){
+async function quickCheckin(){
   if(_ciRunning)return; _ciRunning=true;
   const btn=document.getElementById('ci-main-btn');
-  if(btn){btn.classList.add('loading');btn.textContent='Getting your location...';}
-  if(!navigator.geolocation){showToast('GPS not available on this device','error');resetCiBtn();return;}
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const {latitude:lat,longitude:lng,accuracy}=pos.coords;
-    let address=lat.toFixed(5)+', '+lng.toFixed(5);
-    try{
-      const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=17&addressdetails=1',{headers:{'Accept-Language':'en','User-Agent':'CratioLeadManager/1.0'}});
-      const d=await r.json();
-      if(d&&d.address){const a=d.address;const p=[a.road||a.pedestrian||a.footway,a.suburb||a.neighbourhood,a.city||a.town||a.village,a.state].filter(Boolean);address=p.join(', ')||address;}
-    }catch(e){}
-    _ciRunning=false; resetCiBtn();
-    // Calculate default follow-up date (3 days from today)
-    const def3days = new Date(); def3days.setDate(def3days.getDate()+3);
-    const def3str = def3days.toISOString().slice(0,10);
-    showModal('📍 Check In',
-      `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
-        <div style="font-size:14px;font-weight:700;margin-bottom:5px">📍 ${esc(address)}</div>
-        <div style="font-size:11px;color:var(--text3);font-family:monospace">Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)} | ±${Math.round(accuracy)}m</div>
-       </div>
-       <div class="form-group"><label class="form-label">Note / Place Name (optional)</label><input class="form-input" id="ci-note" placeholder="e.g. ABC Company, Market area, Client office..." autofocus></div>
-       <div class="form-group"><label class="form-label">Link to Lead (optional)</label>
-         <select class="form-input form-select" id="ci-lead">
-           <option value="">— No lead linked —</option>
-           ${DB.leads.map(l=>`<option value="${l.id}">${esc(l.name)}${l.company?' ('+esc(l.company)+')':''}</option>`).join('')}
-         </select>
-       </div>
-       <div class="form-group"><label class="form-label">Set Follow-up Date</label>
-         <input class="form-input" id="ci-followup" type="date" value="${def3str}">
-         <div style="font-size:11px;color:var(--text3);margin-top:5px">⚡ This will also update the linked lead's follow-up date</div>
-       </div>
-       <input type="hidden" id="ci-lat" value="${lat}"><input type="hidden" id="ci-lng" value="${lng}"><input type="hidden" id="ci-addr" value="${esc(address)}">`,
-      `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:2" onclick="saveCheckin()">📍 Save Check-in</button>`
-    );
-  },err=>{
-    _ciRunning=false; resetCiBtn();
-    showToast(err.code===1?'Location permission denied. Allow GPS in browser settings.':'Could not get location, try again.','error');
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  if(btn){btn.classList.add('loading');btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Locking GPS...';}
+
+  // Reuse the same high-accuracy getLocation used everywhere else
+  const loc = await getLocation(null, null);
+  _ciRunning=false;
+  if(btn){btn.classList.remove('loading');btn.innerHTML='<div class="pulse-dot"></div>📍 Check In at Current Location';}
+
+  if(!loc){ showToast('Could not get location. Move outdoors and try again.','error'); return; }
+
+  const {lat, lng, address, accuracy} = loc;
+  const def3days=new Date(); def3days.setDate(def3days.getDate()+3);
+  const def3str=def3days.toISOString().slice(0,10);
+  const accColor = accuracy<50?'var(--green)':accuracy<100?'var(--yellow)':'var(--primary)';
+  showModal('📍 Check In',
+    `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">📍 ${esc(address)}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:monospace;display:flex;gap:10px;flex-wrap:wrap">
+        <span>Lat: ${lat.toFixed(7)}</span><span>Lng: ${lng.toFixed(7)}</span>
+        <span style="color:${accColor};font-weight:700">±${Math.round(accuracy)}m</span>
+      </div>
+     </div>
+     <div class="form-group"><label class="form-label">Note / Place Name (optional)</label><input class="form-input" id="ci-note" placeholder="e.g. ABC Company, Market area, Client office..." autofocus></div>
+     <div class="form-group"><label class="form-label">Link to Lead (optional)</label>
+       <select class="form-input form-select" id="ci-lead">
+         <option value="">— No lead linked —</option>
+         ${DB.leads.map(l=>`<option value="${l.id}">${esc(l.name)}${l.company?' ('+esc(l.company)+')':''}</option>`).join('')}
+       </select>
+     </div>
+     <div class="form-group"><label class="form-label">Set Follow-up Date</label>
+       <input class="form-input" id="ci-followup" type="date" value="${def3str}">
+       <div style="font-size:11px;color:var(--text3);margin-top:5px">⚡ This will also update the linked lead's follow-up date</div>
+     </div>
+     <input type="hidden" id="ci-lat" value="${lat}"><input type="hidden" id="ci-lng" value="${lng}"><input type="hidden" id="ci-addr" value="${esc(address)}">`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:2" onclick="saveCheckin()">📍 Save Check-in</button>`
+  );
 }
 
 function resetCiBtn(){
@@ -1547,8 +1622,17 @@ function _buildDiarySummary(date, stops){
   `;
 
   // Auto-generate clean readable summary
-  const dateLabel = date===todayStr()?'Today':fmtDate(date);
-  let lines = [`📓 DAILY VISIT REPORT — ${dateLabel}`, `${'─'.repeat(38)}`,''];
+  const readableDate = new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const shortDate    = new Date(date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const fileDate     = date; // YYYY-MM-DD for filename sorting
+
+  let lines = [
+    `╔══════════════════════════════════════════╗`,
+    `  📓  DAILY VISIT REPORT`,
+    `  📅  ${readableDate}`,
+    `╚══════════════════════════════════════════╝`,
+    ``
+  ];
 
   stops.forEach((stop,i)=>{
     const timeStr = fmtTime(stop.ts);
@@ -1578,19 +1662,21 @@ function _buildDiarySummary(date, stops){
   });
 
   lines.push('');
-  lines.push(`${'─'.repeat(38)}`);
+  lines.push(`──────────────────────────────────────────`);
   lines.push(`🚗 Total Distance : ${totalDist.toFixed(1)} km`);
   lines.push(`⏱  Total Duration : ${hrs>0?hrs+'h ':''} ${mins} min`);
   lines.push(`📍 Total Stops    : ${stops.length}`);
+  lines.push(`📅 Date           : ${readableDate}`);
   lines.push('');
-  lines.push('Generated by Cratio CRM · Sai Ganesh Electricals');
+  lines.push(`Generated by Cratio CRM · Sai Ganesh Electricals`);
 
   const summaryText = lines.join('\n');
   document.getElementById('diary-summary-text').textContent = summaryText;
 
-  // Store for download
-  window._diarySummaryText = summaryText;
-  window._diarySummaryDate = date;
+  window._diarySummaryText  = summaryText;
+  window._diarySummaryDate  = fileDate;
+  window._diaryShortDate    = shortDate;
+  window._diaryReadableDate = readableDate;
 }
 
 function diaryAddStop(){
@@ -1708,25 +1794,32 @@ function deleteDiaryStop(date,id){
 }
 
 function downloadDiarySummary(){
-  const text=window._diarySummaryText||'No summary yet';
-  const date=window._diarySummaryDate||todayStr();
-  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`Cratio_Diary_${date}.txt`; a.click();
+  const text      = window._diarySummaryText     || 'No summary yet';
+  const fileDate  = window._diarySummaryDate     || todayStr();
+  const shortDate = window._diaryShortDate       || fmtDate(fileDate);
+  // Filename: Visit_Report_10-Mar-2026.txt — human readable, not just numbers
+  const cleanDate = shortDate.replace(/ /g,'-');
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `Visit_Report_${cleanDate}.txt`;
+  a.click();
   URL.revokeObjectURL(url);
-  showToast('Diary saved as .txt file ✓','success');
+  showToast(`✅ Saved: Visit_Report_${cleanDate}.txt`, 'success');
 }
 
 function shareDiarySummary(){
-  const text=window._diarySummaryText||'No summary yet';
-  if(navigator.share){
-    navigator.share({title:'My Daily Visit Report — Cratio CRM',text}).catch(()=>{});
+  const text         = window._diarySummaryText     || 'No summary yet';
+  const shortDate    = window._diaryShortDate       || fmtDate(todayStr());
+  const readableDate = window._diaryReadableDate    || shortDate;
+  const shareTitle   = `Visit Report — ${readableDate}`;
+  if (navigator.share) {
+    navigator.share({ title: shareTitle, text }).catch(()=>{});
   } else {
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(text).then(()=>showToast('Summary copied to clipboard! Paste in WhatsApp ✓','success')).catch(()=>{
-      showToast('Copy not supported. Use Save button.','error');
-    });
+    navigator.clipboard.writeText(text)
+      .then(()=> showToast(`📋 Report for ${shortDate} copied! Paste in WhatsApp ✓`, 'success'))
+      .catch(()=> showToast('Copy not supported. Use Save button.', 'error'));
   }
 }
 
