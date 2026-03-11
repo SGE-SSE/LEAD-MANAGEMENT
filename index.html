@@ -1637,12 +1637,18 @@ function _buildDiarySummary(date, stops){
   stops.forEach((stop,i)=>{
     const timeStr = fmtTime(stop.ts);
     const isFirst = i===0;
-    const isLast = i===stops.length-1;
-    const next = stops[i+1];
+    const isLast  = i===stops.length-1;
+    // Build maps link — uses exact GPS coords if available, else text search
+    const mapsLink = (stop.lat && stop.lng)
+      ? `https://maps.google.com/?q=${stop.lat},${stop.lng}`
+      : stop.address
+        ? `https://maps.google.com/?q=${encodeURIComponent(stop.address)}`
+        : null;
 
     if(isFirst){
       lines.push(`🏢  ${timeStr}  —  Started from ${stop.label}`);
       if(stop.address) lines.push(`      📍 ${stop.address}`);
+      if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
     } else if(isLast && stop.type==='end'){
       const prev=stops[i-1];
       const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
@@ -1650,6 +1656,7 @@ function _buildDiarySummary(date, stops){
       lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
       lines.push(`🏁  ${timeStr}  —  Returned to ${stop.label}`);
       if(stop.address) lines.push(`      📍 ${stop.address}`);
+      if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
     } else {
       const prev=stops[i-1];
       const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
@@ -1657,6 +1664,7 @@ function _buildDiarySummary(date, stops){
       lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
       lines.push(`📍  ${timeStr}  —  Visited ${stop.label}`);
       if(stop.address) lines.push(`      📍 ${stop.address}`);
+      if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
     }
     if(stop.notes) lines.push(`      💬 ${stop.notes}`);
   });
