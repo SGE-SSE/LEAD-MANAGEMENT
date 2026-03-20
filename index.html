@@ -394,7 +394,12 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div class="ph">
       <div class="ph-row">
         <div class="ph-title">Leads</div>
-        <button class="btn btn-primary btn-sm" onclick="openLeadForm()">+ Add Lead</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportLeads()" style="display:flex;align-items:center;gap:5px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openLeadForm()">+ Add Lead</button>
+        </div>
       </div>
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -1829,6 +1834,53 @@ function shareDiarySummary(){
       .then(()=> showToast(`📋 Report for ${shortDate} copied! Paste in WhatsApp ✓`, 'success'))
       .catch(()=> showToast('Copy not supported. Use Save button.', 'error'));
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORT LEADS
+// ══════════════════════════════════════════════════════════════
+function exportLeads(){
+  const leads = DB.leads;
+  if(!leads.length){ showToast('No leads to export','error'); return; }
+
+  // ── CSV export ──
+  const headers = ['Name','Company','Phone','Email','Status','Source','Address','Latitude','Longitude','GPS Accuracy','Next Follow-up','Notes','Google Maps Link','Created','Updated'];
+
+  const rows = leads.map(l=>{
+    const mapsLink = (l.lat && l.lng)
+      ? `https://maps.google.com/?q=${l.lat},${l.lng}`
+      : l.address
+        ? `https://maps.google.com/?q=${encodeURIComponent(l.address)}`
+        : '';
+    return [
+      l.name||'',
+      l.company||'',
+      l.phone||'',
+      l.email||'',
+      l.status||'',
+      l.source||'',
+      l.address||'',
+      l.lat||'',
+      l.lng||'',
+      l.accuracy ? '±'+Math.round(l.accuracy)+'m' : '',
+      l.nextFollowUp||'',
+      (l.notes||'').replace(/\n/g,' '),
+      mapsLink,
+      l.createdAt ? new Date(l.createdAt).toLocaleDateString('en-IN') : '',
+      l.updatedAt ? new Date(l.updatedAt).toLocaleDateString('en-IN') : ''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+
+  const csv = [headers.map(h=>`"${h}"`).join(','), ...rows].join('\n');
+  const date = todayStr();
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'}); // BOM for Excel
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `SSE_Leads_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✅ ${leads.length} leads exported as SSE_Leads_${date}.csv`, 'success');
 }
 
 // ══════════════════════════════════════════════════════════════
