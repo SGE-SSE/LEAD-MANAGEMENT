@@ -86,6 +86,33 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .badge-Negotiating{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.3)}
 .badge-Closed{background:rgba(16,185,129,.25);color:#6ee7b7;border:1px solid rgba(16,185,129,.5)}
 .badge-Lost{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.badge-Price\ Agreed{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(52,211,153,.4)}
+
+/* ── Category badges ── */
+.cat-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.cat-beginning{background:rgba(249,115,22,.12);color:#fb923c;border:1px solid rgba(249,115,22,.3)}
+.cat-intermediate{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.cat-advanced{background:rgba(167,139,250,.12);color:#c084fc;border:1px solid rgba(167,139,250,.3)}
+
+/* ── Lead type (new/old) ── */
+.lead-type-new{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.3);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.lead-type-old{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.3);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+
+/* ── Category selector in form ── */
+.cat-selector{display:flex;gap:8px;margin-bottom:4px}
+.cat-opt{flex:1;padding:10px 6px;border-radius:12px;border:1.5px solid var(--border);background:var(--card2);text-align:center;cursor:pointer;transition:all .13s}
+.cat-opt.selected.beginning{border-color:#fb923c;background:rgba(249,115,22,.1)}
+.cat-opt.selected.intermediate{border-color:#60a5fa;background:rgba(59,130,246,.1)}
+.cat-opt.selected.advanced{border-color:#c084fc;background:rgba(167,139,250,.1)}
+.cat-opt-icon{font-size:20px;margin-bottom:4px}
+.cat-opt-label{font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--text2)}
+.cat-opt.selected .cat-opt-label{color:var(--text)}
+
+/* ── Pipeline funnel steps ── */
+.pipeline-funnel{display:flex;gap:4px;padding:0 16px;margin:10px 0;overflow-x:auto;scrollbar-width:none}
+.pipeline-funnel::-webkit-scrollbar{display:none}
+.funnel-step{flex-shrink:0;text-align:center;padding:6px 10px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;border:1px solid transparent;min-width:70px}
+.funnel-arrow{display:flex;align-items:center;color:var(--text3);font-size:14px;flex-shrink:0;padding-top:2px}
 
 /* ── Form Inputs ── */
 .form-group{margin-bottom:14px}
@@ -372,8 +399,7 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     </div>
 
     <!-- ── FOLLOW-UP REMINDERS (injected by JS) ── -->
-    <div id="fu-overdue-wrap"></div>
-    <div id="fu-today-wrap"></div>
+    <div id="fu-reminders-wrap"></div>
 
     <div class="section" style="margin-top:14px">
       <div class="section-title">Pipeline Status</div>
@@ -431,8 +457,12 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
         <div class="chip" data-status="Contacted" onclick="filterStatus('Contacted')">Contacted</div>
         <div class="chip" data-status="Interested" onclick="filterStatus('Interested')">Interested</div>
         <div class="chip" data-status="Negotiating" onclick="filterStatus('Negotiating')">Negotiating</div>
+        <div class="chip" data-status="Price Agreed" onclick="filterStatus('Price Agreed')">Price Agreed</div>
         <div class="chip" data-status="Closed" onclick="filterStatus('Closed')">Closed</div>
         <div class="chip" data-status="Lost" onclick="filterStatus('Lost')">Lost</div>
+      </div>
+      <div class="chips" id="cat-chips" style="margin-top:6px">
+        <div class="chip active" data-cat="All" onclick="filterCat('All')" id="catf-All">🏷️ All Types</div>
       </div>
     </div>
     <div style="padding:12px 16px 90px" id="leads-list"></div>
@@ -631,14 +661,23 @@ const fmtTime=d=>d?new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const STATUS_COLORS = {
-  New:'var(--blue)', Contacted:'var(--purple)', Interested:'var(--green)',
-  Negotiating:'var(--yellow)', Closed:'#6ee7b7', Lost:'var(--red)'
+  'New':'var(--blue)', 'Contacted':'var(--purple)', 'Interested':'var(--green)',
+  'Negotiating':'var(--yellow)', 'Price Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'var(--red)'
 };
 const STATUS_HEX = {
-  New:'#3b82f6', Contacted:'#a78bfa', Interested:'#10b981',
-  Negotiating:'#f59e0b', Closed:'#6ee7b7', Lost:'#ef4444'
+  'New':'#3b82f6', 'Contacted':'#a78bfa', 'Interested':'#10b981',
+  'Negotiating':'#f59e0b', 'Price Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'#ef4444'
 };
-const STATUSES = ['New','Contacted','Interested','Negotiating','Closed','Lost'];
+const STATUSES = ['New','Contacted','Interested','Negotiating','Price Agreed','Closed','Lost'];
+
+// ── Construction-phase categories ──
+const CATEGORIES = [
+  { key:'Beginning',    label:'Beginning',    sub:'Pillars / Foundation', icon:'🧱', cls:'beginning'    },
+  { key:'Intermediate', label:'Intermediate', sub:'Wall Construction',    icon:'🏗️', cls:'intermediate'  },
+  { key:'Advanced',     label:'Advanced',     sub:'Plastering',           icon:'🏠', cls:'advanced'      },
+];
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.key,c]));
+
 const SOURCES = ['Cold Call','Referral','Walk-in','WhatsApp','LinkedIn','Exhibition','Website','Other'];
 const OUTCOMES = ['No Answer','Callback Later','Not Interested','Interested','Meeting Fixed','Closed Deal'];
 const OUTCOME_CLASSES = {
@@ -904,60 +943,143 @@ function renderDashboard() {
   }
 
   // ── Follow-up Reminders ──
-  const todayLeads  = leads.filter(l=>l.nextFollowUp===today && l.status!=='Closed' && l.status!=='Lost');
-  const overdueLeads= leads.filter(l=>l.nextFollowUp && l.nextFollowUp<today && l.status!=='Closed' && l.status!=='Lost');
+  // ── FOLLOW-UP REMINDERS on Dashboard ──
+  const active       = DB.leads.filter(l=>l.status!=='Closed'&&l.status!=='Lost');
+  const overdueLeads = active.filter(l=>l.nextFollowUp && l.nextFollowUp < today).sort((a,b)=>a.nextFollowUp.localeCompare(b.nextFollowUp));
+  const todayLeads   = active.filter(l=>l.nextFollowUp===today);
+  const upcomingLeads= active.filter(l=>l.nextFollowUp && l.nextFollowUp > today).sort((a,b)=>a.nextFollowUp.localeCompare(b.nextFollowUp)).slice(0,5);
+  const totalAlert   = overdueLeads.length + todayLeads.length;
 
-  // Update nav badge on Reminders bell button
-  const totalAlert = todayLeads.length + overdueLeads.length;
+  // Update bell badge
   const nb = document.getElementById('rm-nav-badge');
   if(nb){ nb.textContent=totalAlert||''; nb.style.display=totalAlert?'':'none'; }
 
-  // Overdue strip → goes to reminders page
-  const overdueWrap = document.getElementById('fu-overdue-wrap');
-  if(overdueLeads.length){
-    overdueWrap.innerHTML=`<div class="overdue-strip" onclick="goTo('reminders')">
-      <span style="font-size:22px">⚠️</span>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:800;color:var(--red)">${overdueLeads.length} Overdue Follow-up${overdueLeads.length>1?'s':''}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${overdueLeads.map(l=>esc(l.name)).join(', ')}</div>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-    </div>`;
-  } else { overdueWrap.innerHTML=''; }
+  const wrap = document.getElementById('fu-reminders-wrap');
+  let rhtml = '';
 
-  // Today follow-ups banner → goes to reminders page
-  const fuWrap = document.getElementById('fu-today-wrap');
-  if(todayLeads.length){
-    fuWrap.innerHTML=`<div class="followup-banner">
-      <div class="followup-banner-hdr">
-        <div class="followup-banner-title">
-          🔔 Follow-up Today
-          <span class="followup-badge">${todayLeads.length}</span>
+  // ── OVERDUE block ──
+  if(overdueLeads.length){
+    rhtml += `<div style="margin:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--red);letter-spacing:.5px;text-transform:uppercase">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Overdue
+          <span style="background:var(--red-dim);color:var(--red);padding:1px 8px;border-radius:20px;font-size:11px">${overdueLeads.length}</span>
         </div>
-        <button onclick="goTo('reminders')" style="background:none;border:none;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+        <button onclick="goTo('reminders')" style="background:none;border:none;font-size:11px;color:var(--red);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
       </div>
-      ${todayLeads.slice(0,3).map(l=>`
-        <div class="fu-item" onclick="openLeadForm('${l.id}')">
-          <div class="fu-avatar">${l.status==='Interested'?'🔥':l.status==='Negotiating'?'🤝':'👤'}</div>
-          <div style="flex:1;min-width:0">
-            <div class="fu-name">${esc(l.name)}</div>
-            <div class="fu-sub">${l.company?esc(l.company)+' · ':''}<span class="badge badge-${l.status}" style="font-size:10px;padding:1px 7px">${l.status}</span></div>
-            ${l.address?`<div class="fu-loc"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address.slice(0,40))}${l.address.length>40?'...':''}</div>`:''}
-            <span class="fu-tag today">📅 Follow up today</span>
+      ${overdueLeads.slice(0,3).map(l=>{
+        const daysAgo = Math.round((new Date(today)-new Date(l.nextFollowUp))/86400000);
+        const cat = l.category ? CAT_MAP[l.category] : null;
+        return `<div class="rm-card overdue" onclick="openLeadForm('${l.id}')">
+          <div class="rm-card-body">
+            <div class="rm-card-top">
+              <div style="flex:1;min-width:0">
+                <div class="rm-card-name">${esc(l.name)}</div>
+                ${l.company?`<div class="rm-card-company">🏢 ${esc(l.company)}</div>`:''}
+              </div>
+              <span class="rm-days-badge overdue">${daysAgo===1?'1 day late':`${daysAgo} days late`}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+              ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
+              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+            </div>
           </div>
-          <div class="fu-actions">
-            <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="padding:6px 10px">📞</button>
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewOnMap('${l.id}')" style="padding:6px 10px;font-size:11px">🗺️</button>
+          <div class="rm-card-actions">
+            <button onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--green-dim);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📞 Call</button>
+            ${l.lat&&l.lng?`<button onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">🗺️ Go</button>`:''}
           </div>
-        </div>`).join('')}
-      ${todayLeads.length>3?`<div style="text-align:center;padding:10px;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer" onclick="goTo('reminders')">+${todayLeads.length-3} more → View All</div>`:''}
+        </div>`;
+      }).join('')}
+      ${overdueLeads.length>3?`<div onclick="goTo('reminders')" style="text-align:center;padding:10px;font-size:12px;color:var(--red);font-weight:700;cursor:pointer;background:var(--red-dim);border-radius:10px;margin-top:2px">+${overdueLeads.length-3} more overdue → View All</div>`:''}
     </div>`;
-  } else { fuWrap.innerHTML=''; }
+  }
+
+  // ── DUE TODAY block ──
+  if(todayLeads.length){
+    rhtml += `<div style="margin:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--yellow);letter-spacing:.5px;text-transform:uppercase">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          Due Today
+          <span style="background:var(--yel-dim);color:var(--yellow);padding:1px 8px;border-radius:20px;font-size:11px">${todayLeads.length}</span>
+        </div>
+        <button onclick="goTo('reminders')" style="background:none;border:none;font-size:11px;color:var(--yellow);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+      </div>
+      ${todayLeads.slice(0,3).map(l=>{
+        const cat = l.category ? CAT_MAP[l.category] : null;
+        return `<div class="rm-card today" onclick="openLeadForm('${l.id}')">
+          <div class="rm-card-body">
+            <div class="rm-card-top">
+              <div style="flex:1;min-width:0">
+                <div class="rm-card-name">${esc(l.name)}</div>
+                ${l.company?`<div class="rm-card-company">🏢 ${esc(l.company)}</div>`:''}
+              </div>
+              <span class="rm-days-badge today">Today!</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+              ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
+              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+              ${l.phone?`<span style="font-size:11px;color:var(--text2)">📱 ${esc(l.phone)}</span>`:''}
+            </div>
+          </div>
+          <div class="rm-card-actions">
+            <button onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:var(--green-dim);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📞 Call</button>
+            ${l.lat&&l.lng?`<button onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">🗺️ Go</button>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+      ${todayLeads.length>3?`<div onclick="goTo('reminders')" style="text-align:center;padding:10px;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer;background:var(--yel-dim);border-radius:10px;margin-top:2px">+${todayLeads.length-3} more today → View All</div>`:''}
+    </div>`;
+  }
+
+  // ── UPCOMING block ──
+  if(upcomingLeads.length){
+    rhtml += `<div style="margin:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--blue);letter-spacing:.5px;text-transform:uppercase">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Coming Up
+          <span style="background:var(--blue-dim);color:var(--blue);padding:1px 8px;border-radius:20px;font-size:11px">${upcomingLeads.length}</span>
+        </div>
+        <button onclick="goTo('reminders')" style="background:none;border:none;font-size:11px;color:var(--blue);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+      </div>
+      ${upcomingLeads.map(l=>{
+        const daysLeft = Math.round((new Date(l.nextFollowUp)-new Date(today))/86400000);
+        const cat = l.category ? CAT_MAP[l.category] : null;
+        return `<div class="rm-card upcoming" onclick="openLeadForm('${l.id}')">
+          <div class="rm-card-body">
+            <div class="rm-card-top">
+              <div style="flex:1;min-width:0">
+                <div class="rm-card-name">${esc(l.name)}</div>
+                ${l.company?`<div class="rm-card-company">🏢 ${esc(l.company)}</div>`:''}
+              </div>
+              <span class="rm-days-badge upcoming">${daysLeft===1?'Tomorrow':`In ${daysLeft}d · ${fmtDate(l.nextFollowUp)}`}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+              ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
+              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  wrap.innerHTML = rhtml || '';
 }
 
 // ══════════════════════════════════════════════════════════════
 // LEADS RENDER
 // ══════════════════════════════════════════════════════════════
+let _catFilter = 'All';
+
+function filterCat(cat){
+  _catFilter = cat;
+  document.querySelectorAll('[data-cat]').forEach(c=>c.classList.toggle('active', c.dataset.cat===cat));
+  renderLeads();
+}
+
 function filterStatus(status) {
   _statusFilter = status;
   document.querySelectorAll('#status-chips .chip').forEach(c=>{
@@ -971,7 +1093,8 @@ function renderLeads() {
   let leads = DB.leads.filter(l=>{
     const mq = !q||(l.name||'').toLowerCase().includes(q)||(l.company||'').toLowerCase().includes(q)||(l.phone||'').includes(q)||(l.email||'').toLowerCase().includes(q);
     const ms = _statusFilter==='All'||l.status===_statusFilter;
-    return mq&&ms;
+    const mc = _catFilter==='All'||l.category===_catFilter;
+    return mq&&ms&&mc;
   });
 
   const el = document.getElementById('leads-list');
@@ -980,7 +1103,9 @@ function renderLeads() {
     return;
   }
 
-  el.innerHTML = leads.map(l=>`
+  el.innerHTML = leads.map(l=>{
+    const cat = l.category ? CAT_MAP[l.category] : null;
+    return `
     <div class="lead-card" onclick="openLeadForm('${l.id}')">
       <div class="lead-actions">
         <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openCallForm(null,'${l.id}')">📞</button>
@@ -991,11 +1116,13 @@ function renderLeads() {
       <div style="padding-right:90px">
         <div class="lead-name">${esc(l.name)}</div>
         ${l.company?`<div class="lead-company">🏢 ${esc(l.company)}</div>`:''}
-        <div class="lead-meta">
-          <span class="badge badge-${l.status}">${l.status}</span>
-          ${l.source?`<span style="font-size:11px;color:var(--text3)">${esc(l.source)}</span>`:''}
+        <div class="lead-meta" style="margin-top:6px;flex-wrap:wrap;gap:5px">
+          ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
+          ${l.leadType?`<span class="${l.leadType==='New Site'?'lead-type-new':'lead-type-old'}">${l.leadType==='New Site'?'🆕':'🔄'} ${l.leadType}</span>`:''}
+          <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+          ${l.source?`<span style="font-size:10px;color:var(--text3)">${esc(l.source)}</span>`:''}
         </div>
-        ${l.phone?`<div class="lead-phone">📱 ${esc(l.phone)}</div>`:''}
+        ${l.phone?`<div class="lead-phone" style="margin-top:6px">📱 ${esc(l.phone)}</div>`:''}
         ${l.address?`<div class="lead-loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address)}</div>`:''}
         ${l.lat&&l.lng?`<button onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:7px 12px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate to ${esc(l.name)}</button>`:
           l.address?`<button onclick="event.stopPropagation();window.open('https://www.google.com/maps/search/'+encodeURIComponent('${esc(l.address)}'),'_blank')" style="display:flex;align-items:center;gap:6px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:7px 12px;color:#3b82f6;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Search Address in Maps</button>`:''}
@@ -1003,7 +1130,7 @@ function renderLeads() {
         <div style="font-size:11px;color:var(--text3);margin-top:6px">Updated ${fmtDate(l.updatedAt)}</div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1056,32 +1183,55 @@ function openLeadForm(id) {
   _editingLead = id ? DB.leads.find(l=>l.id===id)||null : null;
   const l = _editingLead||{};
   _locData = l.lat ? {lat:l.lat, lng:l.lng, address:l.address} : {};
+  const selCat = l.category||'';
+  const selType = l.leadType||'New Site'; // New Site or Existing
 
   const body = `
+    <!-- ── CATEGORY SELECTOR ── -->
     <div class="form-group">
-      <label class="form-label">Full Name *</label>
-      <input class="form-input" id="lf-name" value="${esc(l.name||'')}" placeholder="Contact person name">
+      <label class="form-label">Construction Stage *</label>
+      <div class="cat-selector" id="cat-selector">
+        ${CATEGORIES.map(c=>`
+          <div class="cat-opt ${selCat===c.key?'selected '+c.cls:''}" id="catopt-${c.key}" onclick="selectCat('${c.key}')">
+            <div class="cat-opt-icon">${c.icon}</div>
+            <div class="cat-opt-label">${c.label}</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:2px;line-height:1.2">${c.sub}</div>
+          </div>`).join('')}
+      </div>
+      <input type="hidden" id="lf-category" value="${esc(selCat)}">
+    </div>
+
+    <!-- ── NEW / OLD TOGGLE ── -->
+    <div class="form-group">
+      <label class="form-label">Lead Type</label>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="ltype-new" onclick="selectLeadType('New Site')"
+          style="flex:1;padding:10px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .13s;
+          ${selType==='New Site'?'background:rgba(16,185,129,.15);border:1.5px solid #34d399;color:#34d399':'background:var(--card2);border:1.5px solid var(--border);color:var(--text2)'}">
+          🆕 New Site
+        </button>
+        <button type="button" id="ltype-old" onclick="selectLeadType('Existing Client')"
+          style="flex:1;padding:10px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .13s;
+          ${selType==='Existing Client'?'background:rgba(245,158,11,.15);border:1.5px solid #fbbf24;color:#fbbf24':'background:var(--card2);border:1.5px solid var(--border);color:var(--text2)'}">
+          🔄 Existing Client
+        </button>
+      </div>
+      <input type="hidden" id="lf-leadtype" value="${esc(selType)}">
+    </div>
+
+    <!-- ── BASIC INFO ── -->
+    <div class="form-group">
+      <label class="form-label">Contact Name *</label>
+      <input class="form-input" id="lf-name" value="${esc(l.name||'')}" placeholder="Person name at site">
     </div>
     <div class="form-group">
-      <label class="form-label">Phone Number</label>
+      <label class="form-label">Phone</label>
       <input class="form-input" id="lf-phone" type="tel" value="${esc(l.phone||'')}" placeholder="+91 98765 43210">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group">
-        <label class="form-label">Company</label>
-        <input class="form-input" id="lf-company" value="${esc(l.company||'')}" placeholder="Company name">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" id="lf-email" type="email" value="${esc(l.email||'')}" placeholder="email@co.com">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="form-group">
-        <label class="form-label">Status</label>
-        <select class="form-input form-select" id="lf-status">
-          ${STATUSES.map(s=>`<option value="${s}"${(l.status||'New')===s?' selected':''}>${s}</option>`).join('')}
-        </select>
+        <label class="form-label">Company / Site Name</label>
+        <input class="form-input" id="lf-company" value="${esc(l.company||'')}" placeholder="Site or company">
       </div>
       <div class="form-group">
         <label class="form-label">Source</label>
@@ -1090,25 +1240,51 @@ function openLeadForm(id) {
         </select>
       </div>
     </div>
+
+    <!-- ── PIPELINE STAGE ── -->
+    <div class="form-group">
+      <label class="form-label">Pipeline Stage</label>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:4px">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Tap the current stage of this lead ↓</div>
+        <!-- Row 1: main flow -->
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+          ${['New','Contacted','Interested','Negotiating','Price Agreed','Closed'].map((s,i)=>`
+            <div onclick="selectStatus('${s}')" id="stg-${s.replace(' ','-')}"
+              style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .13s;
+              ${(l.status||'New')===s?`background:${STATUS_HEX[s]}22;border:1.5px solid ${STATUS_HEX[s]};color:${STATUS_HEX[s]}`:'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}"
+            >${i===0?'':'→ '}${s}</div>`).join('')}
+        </div>
+        <!-- Lost separately -->
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="font-size:11px;color:var(--text3)">Or mark as:</div>
+          <div onclick="selectStatus('Lost')" id="stg-Lost"
+            style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .13s;
+            ${'Lost'===(l.status||'New')?'background:rgba(239,68,68,.2);border:1.5px solid #ef4444;color:#ef4444':'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}">
+            ❌ Lost
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="lf-status" value="${esc(l.status||'New')}">
+    </div>
+
     <div class="form-group">
       <label class="form-label">Next Follow-up Date</label>
       <input class="form-input" id="lf-followup" type="date" value="${esc(l.nextFollowUp||'')}">
     </div>
     <div class="form-group">
-      <label class="form-label">Lead Location</label>
+      <label class="form-label">Location (GPS)</label>
       <div class="input-group">
         <input class="form-input" id="lf-addr" value="${esc(l.address||'')}" placeholder="Type address or use GPS">
         <button class="loc-btn" id="lf-loc-btn" onclick="captureLoc('lf')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          GPS
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>GPS
         </button>
       </div>
       <div class="loc-display ${l.lat?'show':''}" id="lf-loc-display">${l.lat?`<strong>📍 ${esc(l.address||'')}</strong><div class="loc-coords">Lat: ${l.lat} | Lng: ${l.lng}</div>`:''}</div>
-      ${l.lat&&l.lng?`<button onclick="navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>🗺️ Navigate to this Location in Google Maps</button>`:''}
+      ${l.lat&&l.lng?`<button onclick="navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate to this Location</button>`:''}
     </div>
     <div class="form-group">
-      <label class="form-label">Notes / Remarks</label>
-      <textarea class="form-input" id="lf-notes" rows="3" placeholder="Key points, product interest, budget discussed...">${esc(l.notes||'')}</textarea>
+      <label class="form-label">Remarks / Notes</label>
+      <textarea class="form-input" id="lf-notes" rows="3" placeholder="Product interest, budget discussed, site details...">${esc(l.notes||'')}</textarea>
     </div>
   `;
 
@@ -1116,6 +1292,41 @@ function openLeadForm(id) {
     `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
      <button class="btn btn-primary" style="flex:2" onclick="saveLead()">💾 Save Lead</button>`
   );
+}
+
+function selectCat(key){
+  document.getElementById('lf-category').value=key;
+  document.querySelectorAll('.cat-opt').forEach(el=>{
+    el.className='cat-opt';
+  });
+  const c = CAT_MAP[key];
+  const el = document.getElementById('catopt-'+key);
+  if(el) el.className='cat-opt selected '+c.cls;
+}
+
+function selectLeadType(type){
+  document.getElementById('lf-leadtype').value=type;
+  const nb=document.getElementById('ltype-new');
+  const ob=document.getElementById('ltype-old');
+  if(nb) nb.style.cssText=nb.style.cssText.replace(/background:[^;]+;border:[^;]+;color:[^;]+/,type==='New Site'?'background:rgba(16,185,129,.15);border:1.5px solid #34d399;color:#34d399':'background:var(--card2);border:1.5px solid var(--border);color:var(--text2)');
+  if(ob) ob.style.cssText=ob.style.cssText.replace(/background:[^;]+;border:[^;]+;color:[^;]+/,type==='Existing Client'?'background:rgba(245,158,11,.15);border:1.5px solid #fbbf24;color:#fbbf24':'background:var(--card2);border:1.5px solid var(--border);color:var(--text2)');
+}
+
+function selectStatus(s){
+  document.getElementById('lf-status').value=s;
+  [...STATUSES].forEach(st=>{
+    const el=document.getElementById('stg-'+st.replace(' ','-'));
+    if(!el)return;
+    if(st===s){
+      el.style.background=STATUS_HEX[st]+'22';
+      el.style.border='1.5px solid '+STATUS_HEX[st];
+      el.style.color=STATUS_HEX[st];
+    } else {
+      el.style.background='var(--card)';
+      el.style.border='1.5px solid var(--border)';
+      el.style.color='var(--text3)';
+    }
+  });
 }
 
 async function captureLoc(prefix) {
@@ -1133,27 +1344,67 @@ async function captureLoc(prefix) {
 function saveLead() {
   const name = document.getElementById('lf-name').value.trim();
   if (!name) { showToast('Please enter the contact name', 'error'); document.getElementById('lf-name').focus(); return; }
+  const category = document.getElementById('lf-category').value;
+  if (!category) { showToast('Please select the Construction Stage', 'error'); return; }
 
   const addrField = document.getElementById('lf-addr').value.trim();
+  const isNew = !_editingLead;
   const lead = {
-    id: _editingLead ? _editingLead.id : uid(),
+    id:           _editingLead ? _editingLead.id : uid(),
     name,
-    phone: document.getElementById('lf-phone').value.trim(),
-    company: document.getElementById('lf-company').value.trim(),
-    email: document.getElementById('lf-email').value.trim(),
-    status: document.getElementById('lf-status').value,
-    source: document.getElementById('lf-source').value,
+    phone:        document.getElementById('lf-phone').value.trim(),
+    company:      document.getElementById('lf-company').value.trim(),
+    email:        _editingLead?.email||'',
+    category,
+    leadType:     document.getElementById('lf-leadtype').value,
+    status:       document.getElementById('lf-status').value,
+    source:       document.getElementById('lf-source').value,
     nextFollowUp: document.getElementById('lf-followup').value,
-    address: addrField || _locData.address || '',
-    lat: _locData.lat || (_editingLead?.lat||''),
-    lng: _locData.lng || (_editingLead?.lng||''),
-    notes: document.getElementById('lf-notes').value.trim(),
-    createdAt: _editingLead ? _editingLead.createdAt : new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    address:      addrField || _locData.address || '',
+    lat:          _locData.lat  || (_editingLead?.lat||''),
+    lng:          _locData.lng  || (_editingLead?.lng||''),
+    notes:        document.getElementById('lf-notes').value.trim(),
+    createdAt:    _editingLead ? _editingLead.createdAt : new Date().toISOString(),
+    updatedAt:    new Date().toISOString(),
   };
 
   if (_editingLead) { DB.updateLead(lead); showToast('Lead updated ✓', 'success'); }
-  else { DB.addLead(lead); showToast('Lead added ✓', 'success'); }
+  else { DB.addLead(lead); showToast('Lead added ✓ · Added to today\'s diary', 'success'); }
+
+  // ── AUTO-ADD TO DIARY ──
+  // New lead → diary entry "Visited [name]"
+  // Updated lead → diary entry "Follow-up: [name]"
+  const diaryLabel = isNew
+    ? (lead.company ? lead.company : lead.name)
+    : ('Follow-up: ' + (lead.company || lead.name));
+  const diaryNote = [
+    isNew ? '🆕 New lead added' : '🔄 Follow-up visit',
+    lead.category ? CAT_MAP[lead.category]?.icon + ' ' + lead.category : '',
+    lead.status ? 'Stage: ' + lead.status : '',
+    lead.notes ? lead.notes.slice(0,100) : ''
+  ].filter(Boolean).join(' · ');
+
+  const date = todayStr();
+  const diaryStops = _getDiaryStops(date);
+  const diaryStop = {
+    id:       uid(),
+    label:    diaryLabel,
+    notes:    diaryNote,
+    address:  lead.address || '',
+    lat:      lead.lat || '',
+    lng:      lead.lng || '',
+    ts:       new Date().toISOString(),
+    type:     diaryStops.length===0 ? 'start' : 'stop',
+    leadId:   lead.id,
+  };
+  diaryStops.push(diaryStop);
+  _saveDiaryStops(date, diaryStops);
+
+  // Also save as check-in for timeline if has GPS
+  if(lead.lat && lead.lng){
+    DB.checkins.unshift({id:uid(), lat:lead.lat, lng:lead.lng, address:lead.address, note:diaryLabel, checkedAt:new Date().toISOString(), date});
+    _saveCI();
+  }
 
   closeModal();
   renderLeads();
@@ -2106,6 +2357,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('calls-date-filter').value = todayStr();
   document.getElementById('tl-date').value = todayStr();
   document.getElementById('diary-date-filter').value = todayStr();
+
+  // Inject category filter chips into leads page
+  const catChips = document.getElementById('cat-chips');
+  if(catChips){
+    CATEGORIES.forEach(c=>{
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.dataset.cat = c.key;
+      el.id = 'catf-'+c.key;
+      el.onclick = ()=>filterCat(c.key);
+      el.textContent = c.icon+' '+c.label;
+      catChips.appendChild(el);
+    });
+  }
+
   goTo('dashboard');
 });
 
