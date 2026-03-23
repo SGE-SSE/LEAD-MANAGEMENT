@@ -234,6 +234,26 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 /* ── Nav badge ── */
 .nav-badge{position:absolute;top:4px;right:calc(50% - 24px);background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:20px;min-width:16px;text-align:center}
 
+/* ── Reminders page ── */
+.rm-section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.rm-section-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+.rm-count{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:900}
+.rm-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin:0 16px 10px;overflow:hidden;transition:border-color .15s;cursor:pointer}
+.rm-card:active{opacity:.85}
+.rm-card.overdue{border-left:4px solid var(--red)}
+.rm-card.today{border-left:4px solid var(--yellow)}
+.rm-card.upcoming{border-left:4px solid var(--blue)}
+.rm-card-body{padding:13px 14px}
+.rm-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.rm-card-name{font-size:15px;font-weight:800}
+.rm-card-company{font-size:12px;color:var(--text2);margin-top:2px}
+.rm-days-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;flex-shrink:0}
+.rm-days-badge.overdue{background:var(--red-dim);color:var(--red)}
+.rm-days-badge.today{background:var(--yel-dim);color:var(--yellow)}
+.rm-days-badge.upcoming{background:var(--blue-dim);color:var(--blue)}
+.rm-card-actions{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,.12)}
+.rm-nav-badge{position:absolute;top:5px;right:8px;background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:20px;min-width:16px;text-align:center;line-height:14px;pointer-events:none}
+
 /* ── Dashboard sections ── */
 .section{padding:16px 16px 0}
 .section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
@@ -519,6 +539,18 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div id="diary-stops-list" style="padding:14px 16px 100px"></div>
   </div>
 
+  <!-- ════════ REMINDERS PAGE ════════ -->
+  <div class="page" id="page-reminders">
+    <div class="ph">
+      <div class="ph-row">
+        <div class="ph-title">🔔 Reminders</div>
+        <div id="rm-total-badge" style="font-size:12px;color:var(--text2);font-weight:700"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px" id="rm-sub">Follow-up tracker for all your leads</div>
+    </div>
+    <div id="reminders-content" style="padding-bottom:90px"></div>
+  </div>
+
 </div>
 <nav id="nav">
   <div class="nav-indicator" id="nav-indicator"></div>
@@ -530,9 +562,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
     <span>Leads</span>
   </button>
-  <button class="nav-btn" id="nav-calls" onclick="goTo('calls')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>
-    <span>Calls</span>
+  <button class="nav-btn" id="nav-reminders" onclick="goTo('reminders')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <span>Reminders</span>
+    <span class="rm-nav-badge" id="rm-nav-badge" style="display:none">0</span>
   </button>
   <button class="nav-btn" id="nav-timeline" onclick="goTo('timeline')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -788,33 +821,30 @@ function closeModal(e) {
 // ROUTER
 // ══════════════════════════════════════════════════════════════
 let _currentPage = 'dashboard';
-const PAGES=['dashboard','leads','calls','timeline','diary'];;
+const PAGES=['dashboard','leads','reminders','timeline','diary'];;
 let _statusFilter = 'All';
 
 function goTo(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  document.getElementById('nav-'+page).classList.add('active');
-
-  // Nav indicator
+  const pageEl = document.getElementById('page-'+page);
+  if(pageEl) pageEl.classList.add('active');
+  const navEl = document.getElementById('nav-'+page);
+  if(navEl) navEl.classList.add('active');
   const idx = PAGES.indexOf(page);
-  document.getElementById('nav-indicator').style.left = (idx*20)+'%';
-
-  // FAB
+  if(idx>=0) document.getElementById('nav-indicator').style.left = (idx*20)+'%';
   const fab = document.getElementById('page-fab');
-  fab.style.display=(page==='leads'||page==='calls')?'flex':'none';
-
+  fab.style.display=(page==='leads')?'flex':'none';
   _currentPage = page;
   if (page==='dashboard') renderDashboard();
   if (page==='leads') renderLeads();
   if (page==='calls') renderCalls();
+  if (page==='reminders') renderReminders();
   if (page==='diary') renderDiary();
 }
 
 function fabAction() {
   if (_currentPage==='leads') openLeadForm();
-  else if (_currentPage==='calls') openCallForm();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -877,16 +907,15 @@ function renderDashboard() {
   const todayLeads  = leads.filter(l=>l.nextFollowUp===today && l.status!=='Closed' && l.status!=='Lost');
   const overdueLeads= leads.filter(l=>l.nextFollowUp && l.nextFollowUp<today && l.status!=='Closed' && l.status!=='Lost');
 
-  // Update nav badge on Home button
+  // Update nav badge on Reminders bell button
   const totalAlert = todayLeads.length + overdueLeads.length;
-  let nb = document.getElementById('dash-nav-badge');
-  if(!nb){ nb=document.createElement('span'); nb.id='dash-nav-badge'; nb.className='nav-badge'; document.getElementById('nav-dashboard').style.position='relative'; document.getElementById('nav-dashboard').appendChild(nb); }
-  nb.textContent = totalAlert||''; nb.style.display = totalAlert?'':'none';
+  const nb = document.getElementById('rm-nav-badge');
+  if(nb){ nb.textContent=totalAlert||''; nb.style.display=totalAlert?'':'none'; }
 
-  // Overdue strip
+  // Overdue strip → goes to reminders page
   const overdueWrap = document.getElementById('fu-overdue-wrap');
   if(overdueLeads.length){
-    overdueWrap.innerHTML=`<div class="overdue-strip" onclick="filterStatus('All');goTo('leads')">
+    overdueWrap.innerHTML=`<div class="overdue-strip" onclick="goTo('reminders')">
       <span style="font-size:22px">⚠️</span>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:800;color:var(--red)">${overdueLeads.length} Overdue Follow-up${overdueLeads.length>1?'s':''}</div>
@@ -896,7 +925,7 @@ function renderDashboard() {
     </div>`;
   } else { overdueWrap.innerHTML=''; }
 
-  // Today follow-ups banner
+  // Today follow-ups banner → goes to reminders page
   const fuWrap = document.getElementById('fu-today-wrap');
   if(todayLeads.length){
     fuWrap.innerHTML=`<div class="followup-banner">
@@ -905,9 +934,9 @@ function renderDashboard() {
           🔔 Follow-up Today
           <span class="followup-badge">${todayLeads.length}</span>
         </div>
-        <button onclick="filterStatus('All');goTo('leads')" style="background:none;border:none;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+        <button onclick="goTo('reminders')" style="background:none;border:none;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
       </div>
-      ${todayLeads.map(l=>`
+      ${todayLeads.slice(0,3).map(l=>`
         <div class="fu-item" onclick="openLeadForm('${l.id}')">
           <div class="fu-avatar">${l.status==='Interested'?'🔥':l.status==='Negotiating'?'🤝':'👤'}</div>
           <div style="flex:1;min-width:0">
@@ -918,9 +947,10 @@ function renderDashboard() {
           </div>
           <div class="fu-actions">
             <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="padding:6px 10px">📞</button>
-            ${l.lat&&l.lng?`<button class="btn btn-sm" onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="padding:6px 8px;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Go</button>`:`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewOnMap('${l.id}')" style="padding:6px 10px;font-size:11px">🗺️</button>`}
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewOnMap('${l.id}')" style="padding:6px 10px;font-size:11px">🗺️</button>
           </div>
         </div>`).join('')}
+      ${todayLeads.length>3?`<div style="text-align:center;padding:10px;font-size:12px;color:var(--yellow);font-weight:700;cursor:pointer" onclick="goTo('reminders')">+${todayLeads.length-3} more → View All</div>`:''}
     </div>`;
   } else { fuWrap.innerHTML=''; }
 }
@@ -1268,9 +1298,43 @@ function mkIcon(emoji,bg){
   });
 }
 
+// straight-line fallback (used only when offline or no GPS)
 function haversine(a,b,c,d){
   const R=6371,dLat=(c-a)*Math.PI/180,dLng=(d-b)*Math.PI/180;
   return R*2*Math.atan2(Math.sqrt(Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2),Math.sqrt(1-(Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2)));
+}
+
+// ── Real road distance via OSRM (free, no API key, same road data as Google Maps) ──
+// Returns km via actual roads. Falls back to haversine if offline.
+async function roadDist(lat1,lng1,lat2,lng2){
+  if(!lat1||!lng1||!lat2||!lng2) return null;
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+    const res=await fetch(url,{signal:AbortSignal.timeout(6000)});
+    const data=await res.json();
+    if(data.code==='Ok' && data.routes && data.routes[0]){
+      return (data.routes[0].distance/1000); // metres → km
+    }
+  }catch(e){}
+  // Offline fallback
+  return haversine(lat1,lng1,lat2,lng2);
+}
+
+// Fetch all segment road distances in parallel for a list of stops/events
+// Returns array of km values (index i = dist from [i-1] to [i], index 0 = 0)
+async function allRoadDists(points){
+  // points = [{lat,lng}, ...]
+  if(points.length<2) return points.map(()=>0);
+  const promises=[];
+  for(let i=1;i<points.length;i++){
+    const p=points[i-1], q=points[i];
+    if(p.lat&&p.lng&&q.lat&&q.lng)
+      promises.push(roadDist(+p.lat,+p.lng,+q.lat,+q.lng));
+    else
+      promises.push(Promise.resolve(null));
+  }
+  const results=await Promise.all(promises);
+  return [0,...results]; // index 0 has no previous
 }
 
 function toggleLyr(key,btn){
@@ -1322,17 +1386,30 @@ function renderTimeline(){
   Object.entries(_lyrs).forEach(([k,l])=>{ if(_lyrOn[k]) l.addTo(_map); });
   if(lls.length>0){ lls.length===1?_map.setView(lls[0],15):_map.fitBounds(lls,{padding:[40,40]}); }
 
-  // Summary
-  let totalDist=0;
-  for(let i=1;i<lls.length;i++) totalDist+=haversine(lls[i-1][0],lls[i-1][1],lls[i][0],lls[i][1]);
+  // Summary — show immediately with time, update distance async with real road km
   const firstTs=events.length?new Date(events[0].ts):null;
   const lastTs=events.length?new Date(events[events.length-1].ts):null;
   const activeHrs=firstTs&&lastTs?((lastTs-firstTs)/3600000).toFixed(1):0;
   document.getElementById('tl-summary').style.display=events.length?'flex':'none';
   document.getElementById('tl-s-places').textContent=events.length;
   document.getElementById('tl-s-calls').textContent=events.filter(e=>e.type==='call').length;
-  document.getElementById('tl-s-dist').textContent=totalDist.toFixed(1)+'km';
+  document.getElementById('tl-s-dist').textContent='...';
   document.getElementById('tl-s-hrs').textContent=activeHrs+'h';
+
+  // Fetch real road distances async, update stat + per-event labels
+  if(events.length>1){
+    allRoadDists(events.map(e=>({lat:e.lat,lng:e.lng}))).then(dists=>{
+      const totalRoad = dists.reduce((s,d)=>s+(d||0),0);
+      document.getElementById('tl-s-dist').textContent=totalRoad.toFixed(1)+'km';
+      // Update each per-event distance span
+      dists.forEach((d,i)=>{
+        const el=document.getElementById('tl-evdist-'+i);
+        if(el) el.textContent = i===0 ? 'Start' : (d ? '🛣️ '+d.toFixed(1)+'km' : '—');
+      });
+    });
+  } else {
+    document.getElementById('tl-s-dist').textContent='0km';
+  }
 
   // Build list
   const listEl=document.getElementById('tl-list');
@@ -1344,7 +1421,6 @@ function renderTimeline(){
   events.forEach((ev,i)=>{
     const isLast=i===events.length-1;
     const icon=ev.type==='checkin'?'📍':ev.type==='call'?'📞':'👤';
-    const dist=i>0?haversine(events[i-1].lat,events[i-1].lng,ev.lat,ev.lng).toFixed(2)+'km from prev':'Start';
     const delBtn=ev.type==='checkin'?`<button onclick="event.stopPropagation();deleteCheckin('${ev.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">🗑</button>`:'';
     const navBtn=`<button onclick="event.stopPropagation();navigateTo(${ev.lat},${ev.lng},'${esc(ev.label)}')" style="display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:5px 10px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:8px;width:100%;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate in Google Maps</button>`;
     html+=`<div class="tl-item">
@@ -1362,7 +1438,7 @@ function renderTimeline(){
         <div class="tl-meta">
           <span class="tl-badge ${ev.type}">${ev.type.toUpperCase()}</span>
           <span>🕐 ${fmtTime(ev.ts)}</span>
-          <span>${dist}</span>
+          <span id="tl-evdist-${i}" style="color:var(--text3)">${i===0?'Start':'⏳'}</span>
         </div>
         ${navBtn}
       </div>
@@ -1531,12 +1607,10 @@ function _saveDiaryStops(date, stops){ localStorage.setItem('cratio_diary_'+date
 
 let _diaryGettingLoc = false;
 
-function renderDiary(){
+async function renderDiary(){
   const date = document.getElementById('diary-date-filter').value || todayStr();
   const isToday = date === todayStr();
   document.getElementById('diary-date-label').textContent = isToday ? "Today's Journey" : fmtDate(date);
-
-  // Show/hide add-stop bar only for today
   document.getElementById('diary-status-bar').style.display = isToday ? 'block' : 'none';
 
   const stops = _getDiaryStops(date);
@@ -1553,50 +1627,53 @@ function renderDiary(){
     return;
   }
 
-  // Build summary
+  // Build summary card (async — fetches road distances)
   summaryCard.style.display='block';
-  _buildDiarySummary(date, stops);
+  _buildDiarySummary(date, stops); // runs async in background, updates DOM when done
 
-  // Build stop cards
+  // Fetch all road distances for the stop cards
+  const points = stops.map(s=>({lat:s.lat,lng:s.lng}));
+  const dists  = await allRoadDists(points); // real road km per segment
+
+  // Build stop cards with real road distances
   let html='';
   stops.forEach((stop, i)=>{
     const isFirst = i===0;
-    const isLast = i===stops.length-1;
-    const prev = i>0?stops[i-1]:null;
-    const next = i<stops.length-1?stops[i+1]:null;
+    const isLast  = i===stops.length-1;
+    const prev    = i>0?stops[i-1]:null;
 
-    // Time between stops
+    // Travel info row between stops
     let travelInfo='';
     if(prev){
-      const mins = Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
-      const dist = (prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
+      const tMins  = Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
+      const roadKm = dists[i] ? dists[i].toFixed(1)+' km by road' : null;
       travelInfo=`<div style="display:flex;align-items:center;gap:6px;padding:6px 0 6px 18px;margin-left:16px;border-left:2px dashed var(--border2)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-        <span style="font-size:11px;color:var(--text3);font-weight:600">${mins<60?mins+' min':(mins/60).toFixed(1)+' hr'} travel${dist?' · ~'+dist+' km':''}</span>
+        <span style="font-size:11px;color:var(--text3);font-weight:600">${tMins<60?tMins+' min':(tMins/60).toFixed(1)+' hr'} travel${roadKm?' · 🛣️ '+roadKm:''}</span>
       </div>`;
     }
 
-    const dotColor = isFirst?'#10b981': stop.type==='end'?'#ef4444':'#f97316';
-    const dotEmoji = isFirst?'🏢': stop.type==='end'?'🏁':'📍';
+    const dotColor  = isFirst?'#10b981': stop.type==='end'?'#ef4444':'#f97316';
+    const dotEmoji  = isFirst?'🏢': stop.type==='end'?'🏁':'📍';
     const typeLabel = isFirst?'START': stop.type==='end'?'END':'STOP';
-    const typeBg = isFirst?'var(--green-dim)': stop.type==='end'?'var(--red-dim)':'var(--pri-dim)';
+    const typeBg    = isFirst?'var(--green-dim)': stop.type==='end'?'var(--red-dim)':'var(--pri-dim)';
     const typeColor = isFirst?'var(--green)': stop.type==='end'?'var(--red)':'var(--primary)';
-    const typeBorder = isFirst?'rgba(16,185,129,.3)': stop.type==='end'?'rgba(239,68,68,.3)':'rgba(249,115,22,.3)';
+    const typeBorder= isFirst?'rgba(16,185,129,.3)': stop.type==='end'?'rgba(239,68,68,.3)':'rgba(249,115,22,.3)';
 
     html += travelInfo;
     html += `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:4px">
-      <!-- dot + line -->
       <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:4px">
         <div style="width:38px;height:38px;border-radius:50%;background:${dotColor}22;border:2px solid ${dotColor};display:flex;align-items:center;justify-content:center;font-size:17px;position:relative;z-index:2">${dotEmoji}</div>
         ${!isLast?`<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin:4px 0;flex-shrink:0"></div>`:''}
       </div>
-      <!-- content -->
       <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:${!isLast?'0':'8px'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
           <div>
             <div style="font-size:15px;font-weight:800;color:var(--text)">${esc(stop.label)}</div>
-            <div style="font-size:11px;margin-top:3px"><span style="background:${typeBg};color:${typeColor};border:1px solid ${typeBorder};padding:1px 8px;border-radius:10px;font-weight:700;letter-spacing:.4px">${typeLabel}</span>
-            <span style="color:var(--text2);margin-left:6px">🕐 ${fmtTime(stop.ts)}</span></div>
+            <div style="font-size:11px;margin-top:3px">
+              <span style="background:${typeBg};color:${typeColor};border:1px solid ${typeBorder};padding:1px 8px;border-radius:10px;font-weight:700;letter-spacing:.4px">${typeLabel}</span>
+              <span style="color:var(--text2);margin-left:6px">🕐 ${fmtTime(stop.ts)}</span>
+            </div>
           </div>
           ${isToday?`<button onclick="deleteDiaryStop('${date}','${stop.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 0 0 4px">🗑</button>`:''}
         </div>
@@ -1609,29 +1686,47 @@ function renderDiary(){
   listEl.innerHTML=html;
 }
 
-function _buildDiarySummary(date, stops){
+async function _buildDiarySummary(date, stops){
   if(!stops.length) return;
 
-  // Stats
+  // Show loading state while fetching road distances
+  document.getElementById('diary-stats-row').innerHTML=`
+    <div style="flex:1;text-align:center;padding:14px 4px;color:var(--text2);font-size:12px;font-weight:700;letter-spacing:.3px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;vertical-align:middle;margin-right:5px"><path d="M21 12a9 9 0 11-18 0"/></svg>
+      Calculating road distances...
+    </div>`;
+
+  // Fetch all segment road distances in parallel
+  const points = stops.map(s=>({lat:s.lat,lng:s.lng}));
+  const dists  = await allRoadDists(points); // dists[i] = road km from stop[i-1] to stop[i]
+
   let totalMins=0, totalDist=0;
   for(let i=1;i<stops.length;i++){
-    totalMins+=Math.round((new Date(stops[i].ts)-new Date(stops[i-1].ts))/60000);
-    if(stops[i-1].lat&&stops[i].lat) totalDist+=haversine(+stops[i-1].lat,+stops[i-1].lng,+stops[i].lat,+stops[i].lng);
+    totalMins += Math.round((new Date(stops[i].ts)-new Date(stops[i-1].ts))/60000);
+    if(dists[i]) totalDist += dists[i];
   }
   const hrs=Math.floor(totalMins/60), mins=totalMins%60;
 
   document.getElementById('diary-stats-row').innerHTML=`
-    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--green)">${stops.length}</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Stops</div></div>
-    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--primary)">${totalDist.toFixed(1)}<span style="font-size:11px">km</span></div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Distance</div></div>
-    <div style="flex:1;text-align:center;padding:10px 4px"><div style="font-size:20px;font-weight:900;color:var(--blue)">${hrs>0?hrs+'h ':''} ${mins}m</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Duration</div></div>
-  `;
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)">
+      <div style="font-size:20px;font-weight:900;color:var(--green)">${stops.length}</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Stops</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--border)">
+      <div style="font-size:20px;font-weight:900;color:var(--primary)">${totalDist.toFixed(1)}<span style="font-size:11px">km</span></div>
+      <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Road Dist</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px 4px">
+      <div style="font-size:20px;font-weight:900;color:var(--blue)">${hrs>0?hrs+'h ':''} ${mins}m</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Duration</div>
+    </div>`;
 
-  // Auto-generate clean readable summary
+  // Build readable summary text
   const readableDate = new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const shortDate    = new Date(date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-  const fileDate     = date; // YYYY-MM-DD for filename sorting
+  const fileDate     = date;
 
-  let lines = [
+  let lines=[
     `╔══════════════════════════════════════════╗`,
     `  📓  DAILY VISIT REPORT`,
     `  📅  ${readableDate}`,
@@ -1643,8 +1738,7 @@ function _buildDiarySummary(date, stops){
     const timeStr = fmtTime(stop.ts);
     const isFirst = i===0;
     const isLast  = i===stops.length-1;
-    // Build maps link — uses exact GPS coords if available, else text search
-    const mapsLink = (stop.lat && stop.lng)
+    const mapsLink= (stop.lat&&stop.lng)
       ? `https://maps.google.com/?q=${stop.lat},${stop.lng}`
       : stop.address
         ? `https://maps.google.com/?q=${encodeURIComponent(stop.address)}`
@@ -1654,20 +1748,17 @@ function _buildDiarySummary(date, stops){
       lines.push(`🏢  ${timeStr}  —  Started from ${stop.label}`);
       if(stop.address) lines.push(`      📍 ${stop.address}`);
       if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
-    } else if(isLast && stop.type==='end'){
-      const prev=stops[i-1];
-      const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
-      const dist=(prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
-      lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
-      lines.push(`🏁  ${timeStr}  —  Returned to ${stop.label}`);
-      if(stop.address) lines.push(`      📍 ${stop.address}`);
-      if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
     } else {
-      const prev=stops[i-1];
-      const tMins=Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
-      const dist=(prev.lat&&stop.lat)?haversine(+prev.lat,+prev.lng,+stop.lat,+stop.lng).toFixed(1):null;
-      lines.push(`      ↓  ${tMins<60?tMins+' min travel':(tMins/60).toFixed(1)+' hr travel'}${dist?' (~'+dist+' km)':''}`);
-      lines.push(`📍  ${timeStr}  —  Visited ${stop.label}`);
+      const prev    = stops[i-1];
+      const tMins   = Math.round((new Date(stop.ts)-new Date(prev.ts))/60000);
+      const roadKm  = dists[i] ? dists[i].toFixed(1)+' km by road' : null;
+      const timeStr2= tMins<60 ? tMins+' min' : (tMins/60).toFixed(1)+' hr';
+      lines.push(`      ↓  ${timeStr2} travel${roadKm?' · '+roadKm:''}`);
+      if(isLast && stop.type==='end'){
+        lines.push(`🏁  ${timeStr}  —  Returned to ${stop.label}`);
+      } else {
+        lines.push(`📍  ${timeStr}  —  Visited ${stop.label}`);
+      }
       if(stop.address) lines.push(`      📍 ${stop.address}`);
       if(mapsLink)     lines.push(`      🗺️  ${mapsLink}`);
     }
@@ -1676,16 +1767,15 @@ function _buildDiarySummary(date, stops){
 
   lines.push('');
   lines.push(`──────────────────────────────────────────`);
-  lines.push(`🚗 Total Distance : ${totalDist.toFixed(1)} km`);
-  lines.push(`⏱  Total Duration : ${hrs>0?hrs+'h ':''} ${mins} min`);
-  lines.push(`📍 Total Stops    : ${stops.length}`);
-  lines.push(`📅 Date           : ${readableDate}`);
+  lines.push(`🚗 Total Road Distance : ${totalDist.toFixed(1)} km`);
+  lines.push(`⏱  Total Duration      : ${hrs>0?hrs+'h ':''} ${mins} min`);
+  lines.push(`📍 Total Stops         : ${stops.length}`);
+  lines.push(`📅 Date                : ${readableDate}`);
   lines.push('');
   lines.push(`Generated by Cratio CRM · Sai Ganesh Electricals`);
 
-  const summaryText = lines.join('\n');
-  document.getElementById('diary-summary-text').textContent = summaryText;
-
+  const summaryText=lines.join('\n');
+  document.getElementById('diary-summary-text').textContent=summaryText;
   window._diarySummaryText  = summaryText;
   window._diarySummaryDate  = fileDate;
   window._diaryShortDate    = shortDate;
@@ -1834,6 +1924,132 @@ function shareDiarySummary(){
       .then(()=> showToast(`📋 Report for ${shortDate} copied! Paste in WhatsApp ✓`, 'success'))
       .catch(()=> showToast('Copy not supported. Use Save button.', 'error'));
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// REMINDERS PAGE
+// ══════════════════════════════════════════════════════════════
+function renderReminders(){
+  const today = todayStr();
+  const active = DB.leads.filter(l=>l.status!=='Closed'&&l.status!=='Lost');
+
+  // Categorise
+  const overdue  = active.filter(l=>l.nextFollowUp && l.nextFollowUp < today).sort((a,b)=>a.nextFollowUp.localeCompare(b.nextFollowUp));
+  const dueToday = active.filter(l=>l.nextFollowUp===today);
+  const upcoming = active.filter(l=>l.nextFollowUp && l.nextFollowUp > today).sort((a,b)=>a.nextFollowUp.localeCompare(b.nextFollowUp)).slice(0,20);
+  const noDate   = active.filter(l=>!l.nextFollowUp);
+
+  const total = overdue.length + dueToday.length;
+
+  // Update nav badge
+  const nb = document.getElementById('rm-nav-badge');
+  if(nb){ nb.textContent=total||''; nb.style.display=total?'':'none'; }
+
+  // Update header
+  document.getElementById('rm-total-badge').innerHTML = total
+    ? `<span style="background:var(--red-dim);color:var(--red);padding:3px 12px;border-radius:20px;font-weight:900">${total} urgent</span>`
+    : `<span style="color:var(--green);font-size:13px">✅ All clear!</span>`;
+
+  let html='';
+
+  // ── OVERDUE ──
+  if(overdue.length){
+    html+=`<div class="rm-section-hdr">
+      <div class="rm-section-label" style="color:var(--red)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Overdue
+      </div>
+      <span class="rm-count" style="background:var(--red-dim);color:var(--red)">${overdue.length}</span>
+    </div>`;
+    html += overdue.map(l=>rmCard(l,'overdue',today)).join('');
+  }
+
+  // ── TODAY ──
+  if(dueToday.length){
+    html+=`<div class="rm-section-hdr" style="margin-top:${overdue.length?'6px':'0'}">
+      <div class="rm-section-label" style="color:var(--yellow)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Due Today
+      </div>
+      <span class="rm-count" style="background:var(--yel-dim);color:var(--yellow)">${dueToday.length}</span>
+    </div>`;
+    html += dueToday.map(l=>rmCard(l,'today',today)).join('');
+  }
+
+  // ── UPCOMING ──
+  if(upcoming.length){
+    html+=`<div class="rm-section-hdr" style="margin-top:6px">
+      <div class="rm-section-label" style="color:var(--blue)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Upcoming
+      </div>
+      <span class="rm-count" style="background:var(--blue-dim);color:var(--blue)">${upcoming.length}</span>
+    </div>`;
+    html += upcoming.map(l=>rmCard(l,'upcoming',today)).join('');
+  }
+
+  // ── NO DATE SET ──
+  if(noDate.length){
+    html+=`<div class="rm-section-hdr" style="margin-top:6px">
+      <div class="rm-section-label" style="color:var(--text3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        No Follow-up Date Set
+      </div>
+      <span class="rm-count" style="background:var(--card2);color:var(--text2)">${noDate.length}</span>
+    </div>
+    ${noDate.map(l=>`
+      <div class="rm-card" style="border-left:4px solid var(--border2)" onclick="openLeadForm('${l.id}')">
+        <div class="rm-card-body">
+          <div class="rm-card-top">
+            <div>
+              <div class="rm-card-name">${esc(l.name)}</div>
+              ${l.company?`<div class="rm-card-company">🏢 ${esc(l.company)}</div>`:''}
+            </div>
+            <span class="badge badge-${l.status}">${l.status}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">📅 No follow-up date — tap to set one</div>
+        </div>
+      </div>`).join('')}`;
+  }
+
+  if(!overdue.length&&!dueToday.length&&!upcoming.length&&!noDate.length){
+    html=`<div class="empty"><div class="empty-icon">🔔</div><div class="empty-text">No active leads</div><div class="empty-sub">Add leads and set follow-up dates to see reminders here</div></div>`;
+  }
+
+  document.getElementById('reminders-content').innerHTML=html;
+}
+
+function rmCard(l, type, today){
+  const daysAgo  = Math.round((new Date(today)-new Date(l.nextFollowUp))/86400000);
+  const daysLeft = Math.round((new Date(l.nextFollowUp)-new Date(today))/86400000);
+  const dueTxt   = type==='overdue'  ? (daysAgo===1?'1 day overdue':`${daysAgo} days overdue`)
+                 : type==='today'    ? 'Follow up TODAY'
+                 : (daysLeft===1?'Tomorrow':`In ${daysLeft} days · ${fmtDate(l.nextFollowUp)}`);
+  const navBtn = (l.lat&&l.lng)
+    ? `<button onclick="event.stopPropagation();navigateTo(${l.lat},${l.lng},'${esc(l.name)}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Navigate</button>`
+    : '';
+  return `<div class="rm-card ${type}" onclick="openLeadForm('${l.id}')">
+    <div class="rm-card-body">
+      <div class="rm-card-top">
+        <div style="flex:1;min-width:0">
+          <div class="rm-card-name">${esc(l.name)}</div>
+          ${l.company?`<div class="rm-card-company">🏢 ${esc(l.company)}</div>`:''}
+        </div>
+        <span class="rm-days-badge ${type}">${dueTxt}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <span class="badge badge-${l.status}">${l.status}</span>
+        ${l.phone?`<span style="font-size:12px;color:var(--text2)">📱 ${esc(l.phone)}</span>`:''}
+        ${l.source?`<span style="font-size:11px;color:var(--text3)">${esc(l.source)}</span>`:''}
+      </div>
+      ${l.address?`<div style="font-size:11px;color:var(--text3);margin-top:5px;display:flex;align-items:flex-start;gap:4px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.address)}</div>`:''}
+    </div>
+    <div class="rm-card-actions">
+      <button onclick="event.stopPropagation();openCallForm(null,'${l.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--green-dim);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.6 19.79 19.79 0 011.6 5a2 2 0 011.97-2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L7.91 10.6a16 16 0 006 6l.92-.92a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 18"/></svg>Log Call</button>
+      ${navBtn}
+      <button onclick="event.stopPropagation();openLeadForm('${l.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+    </div>
+  </div>`;
 }
 
 // ══════════════════════════════════════════════════════════════
