@@ -261,7 +261,34 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 /* ── Nav badge ── */
 .nav-badge{position:absolute;top:4px;right:calc(50% - 24px);background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:20px;min-width:16px;text-align:center}
 
-/* ── Reminders page ── */
+/* ── New Leads Activity Banner ── */
+.nl-banner{background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(167,139,250,.06));border:1.5px solid rgba(59,130,246,.3);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.nl-banner::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(59,130,246,.06);border-radius:50%}
+.nl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.nl-title{font-size:13px;font-weight:800;color:var(--blue);display:flex;align-items:center;gap:7px;letter-spacing:.2px}
+.nl-stats{display:flex;gap:8px}
+.nl-stat{flex:1;background:rgba(0,0,0,.15);border-radius:10px;padding:8px 10px;text-align:center}
+.nl-stat-val{font-size:22px;font-weight:900;line-height:1}
+.nl-stat-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.4px;text-transform:uppercase;margin-top:3px}
+.nl-stat-sub{font-size:10px;margin-top:2px;font-weight:600}
+.nl-recent{margin-top:10px}
+.nl-recent-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+.nl-lead-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(59,130,246,.1)}
+.nl-lead-row:last-child{border-bottom:none}
+.nl-alert{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.ins-row{display:flex;gap:8px;margin-bottom:10px}
+.ins-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center}
+.ins-val{font-size:26px;font-weight:900;line-height:1}
+.ins-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-top:4px}
+.ins-bar-wrap{margin-bottom:8px}
+.ins-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.ins-bar-name{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.ins-bar-count{font-size:12px;font-weight:800}
+.ins-bar-track{height:8px;background:var(--card2);border-radius:20px;overflow:hidden}
+.ins-bar-fill{height:100%;border-radius:20px;transition:width .5s ease}
+.ins-insight-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.ins-insight-title{font-size:12px;font-weight:800;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+.ins-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin:3px}
 .rm-section-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
 .rm-section-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
 .rm-count{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:900}
@@ -373,6 +400,9 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
       </div>
     </div>
 
+    <!-- ── NEW LEADS ACTIVITY BANNER ── -->
+    <div id="new-leads-banner" style="margin:12px 16px 0"></div>
+
     <div class="stats-grid">
       <div class="stat-card blue">
         <div class="stat-icon">📋</div>
@@ -432,6 +462,19 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div class="section" style="margin-top:16px;padding-bottom:24px">
       <div class="section-title">Today's Calls <span id="today-call-count" style="font-weight:900;color:var(--primary)">0</span></div>
       <div id="today-calls-list"></div>
+    </div>
+
+    <!-- ── LEAD INSIGHTS ── -->
+    <div class="section" style="margin-top:4px;padding-bottom:30px">
+      <div class="section-title">
+        📊 Lead Insights
+        <div style="display:flex;gap:6px">
+          <button class="chip" id="ins-7" onclick="setInsightRange(7)" style="padding:3px 10px;font-size:11px">7 Days</button>
+          <button class="chip active" id="ins-30" onclick="setInsightRange(30)" style="padding:3px 10px;font-size:11px">30 Days</button>
+          <button class="chip" id="ins-all" onclick="setInsightRange(0)" style="padding:3px 10px;font-size:11px">All Time</button>
+        </div>
+      </div>
+      <div id="insights-content"></div>
     </div>
   </div>
 
@@ -1073,6 +1116,10 @@ function renderDashboard() {
   }
 
   wrap.innerHTML = rhtml || '';
+
+  // Render new leads banner and insights
+  renderNewLeadsBanner();
+  renderInsights();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1302,8 +1349,15 @@ function openLeadForm(id) {
     </div>
 
     <div class="form-group">
-      <label class="form-label">Next Follow-up Date</label>
-      <input class="form-input" id="lf-followup" type="date" value="${esc(l.nextFollowUp||'')}">
+      <label class="form-label" id="lf-followup-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📅 Next Follow-up Date <span style="color:var(--red);font-size:13px">*</span></span>
+        <span id="lf-followup-hint" style="font-size:10px;color:var(--text3);font-weight:600"></span>
+      </label>
+      <input class="form-input" id="lf-followup" type="date" value="${esc(l.nextFollowUp||'')}"
+        oninput="onFollowupChange(this)">
+      <div id="lf-followup-warning" style="display:none;margin-top:6px;padding:9px 12px;background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.4);border-radius:10px;font-size:11px;color:var(--yellow);font-weight:700">
+        ⚠️ Please set next follow-up date — otherwise this lead stays overdue!
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Location (GPS)</label>
@@ -1318,7 +1372,9 @@ function openLeadForm(id) {
     </div>
     <div class="form-group">
       <label class="form-label">Remarks / Notes</label>
-      <textarea class="form-input" id="lf-notes" rows="3" placeholder="Product interest, budget discussed, site details...">${esc(l.notes||'')}</textarea>
+      <textarea class="form-input" id="lf-notes" rows="3"
+        placeholder="Product interest, budget discussed, site details..."
+        oninput="checkFollowupRequired()">${esc(l.notes||'')}</textarea>
     </div>
   `;
 
@@ -1375,11 +1431,77 @@ async function captureLoc(prefix) {
   }
 }
 
+function checkFollowupRequired(){
+  const notes   = (document.getElementById('lf-notes')?.value||'').trim();
+  const fuDate  = document.getElementById('lf-followup')?.value||'';
+  const today   = todayStr();
+  const warn    = document.getElementById('lf-followup-warning');
+  const fuInp   = document.getElementById('lf-followup');
+  const dateOld = fuDate && fuDate < today;
+  const dateMissing = !fuDate;
+
+  if(notes && (dateMissing || dateOld)){
+    if(warn){
+      warn.style.display='block';
+      warn.textContent = dateOld
+        ? '⚠️ Date is in past! Set a new future follow-up date.'
+        : '⚠️ Please set next follow-up date — otherwise this lead stays overdue!';
+    }
+    if(fuInp){ fuInp.style.borderColor='var(--yellow)'; fuInp.style.boxShadow='0 0 0 3px rgba(245,158,11,.2)'; }
+  } else {
+    if(warn) warn.style.display='none';
+    if(fuInp && !fuDate){ fuInp.style.borderColor=''; fuInp.style.boxShadow=''; }
+  }
+}
+
+function onFollowupChange(inp){
+  const warn = document.getElementById('lf-followup-warning');
+  const lbl  = document.getElementById('lf-followup-label');
+  if(inp.value){
+    if(warn) warn.style.display='none';
+    inp.style.borderColor='var(--green)';
+    inp.style.boxShadow='0 0 0 3px rgba(16,185,129,.15)';
+    if(lbl) lbl.style.color='var(--green)';
+  } else {
+    inp.style.borderColor='';
+    inp.style.boxShadow='';
+    if(lbl) lbl.style.color='';
+  }
+}
+
 function saveLead() {
   const name = document.getElementById('lf-name').value.trim();
   if (!name) { showToast('Please enter the contact name', 'error'); document.getElementById('lf-name').focus(); return; }
   const category = document.getElementById('lf-category').value;
   if (!category) { showToast('Please select the Construction Stage', 'error'); return; }
+
+  // ── If remarks entered, follow-up date is REQUIRED and must be today or future ──
+  const notesVal   = document.getElementById('lf-notes').value.trim();
+  const followupVal= document.getElementById('lf-followup').value;
+  const today      = todayStr();
+  const dateOld    = followupVal && followupVal < today; // date exists but is in past
+  const dateMissing= !followupVal;
+
+  if(notesVal && (dateMissing || dateOld)){
+    const fuInp = document.getElementById('lf-followup');
+    const warn  = document.getElementById('lf-followup-warning');
+    if(fuInp){
+      fuInp.style.borderColor='var(--red)';
+      fuInp.style.boxShadow='0 0 0 3px rgba(239,68,68,.25)';
+      fuInp.scrollIntoView({behavior:'smooth', block:'center'});
+      fuInp.focus();
+    }
+    if(warn){
+      warn.style.display='block';
+      warn.textContent= dateOld
+        ? '⚠️ Follow-up date is in the past! Please set a new future date.'
+        : '⚠️ Please set next follow-up date — otherwise this lead stays overdue!';
+    }
+    showToast(dateOld
+      ? '📅 Old date detected! Set a new follow-up date.'
+      : '📅 Please set next follow-up date before saving!', 'error');
+    return;
+  }
 
   const addrField = document.getElementById('lf-addr').value.trim();
   const isNew = !_editingLead;
@@ -2427,6 +2549,289 @@ function rmCard(l, type, today){
       <button onclick="event.stopPropagation();openLeadForm('${l.id}')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
     </div>
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// NEW LEADS ACTIVITY BANNER
+// ══════════════════════════════════════════════════════════════
+function renderNewLeadsBanner(){
+  const el = document.getElementById('new-leads-banner');
+  if(!el) return;
+
+  const now   = new Date();
+  const leads = DB.leads;
+
+  const msDay = 1000*60*60*24;
+  const last7  = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/msDay <= 7);
+  const last30 = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/msDay <= 30);
+  // Previous week (7-14 days ago) for trend
+  const prev7  = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/msDay > 7 && (now-new Date(l.createdAt))/msDay <= 14);
+
+  const trend   = last7.length > prev7.length ? '↑ More than last week' :
+                  last7.length < prev7.length ? '↓ Less than last week' :
+                  '→ Same as last week';
+  const trendClr= last7.length > prev7.length ? 'var(--green)' :
+                  last7.length < prev7.length ? 'var(--red)'   : 'var(--text2)';
+
+  // Recent 3 new leads
+  const recent3 = [...last7].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,3);
+
+  // Daily average this month
+  const daysInMonth = Math.min(30, Math.ceil((now - new Date(now.getFullYear(), now.getMonth(), 1))/msDay)||1);
+  const dailyAvg = (last30.length / daysInMonth).toFixed(1);
+
+  // Alert if no new leads added this week
+  if(last7.length === 0){
+    el.innerHTML = `<div class="nl-alert">
+      <span style="font-size:24px">⚠️</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:800;color:var(--red)">No New Leads This Week!</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">Pipeline is not growing. Focus on adding new leads today.</div>
+      </div>
+      <button onclick="openLeadForm()" style="background:var(--red-dim);border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:8px 12px;color:var(--red);font-size:12px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0">+ Add Now</button>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="nl-banner">
+    <div class="nl-top">
+      <div class="nl-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        New Leads Pipeline
+      </div>
+      <button onclick="openLeadForm()" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.35);border-radius:8px;padding:5px 12px;color:var(--blue);font-size:12px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif">+ Add Lead</button>
+    </div>
+
+    <div class="nl-stats">
+      <div class="nl-stat">
+        <div class="nl-stat-val" style="color:var(--green)">${last7.length}</div>
+        <div class="nl-stat-lbl">This Week</div>
+        <div class="nl-stat-sub" style="color:${trendClr}">${trend}</div>
+      </div>
+      <div class="nl-stat">
+        <div class="nl-stat-val" style="color:var(--blue)">${last30.length}</div>
+        <div class="nl-stat-lbl">This Month</div>
+        <div class="nl-stat-sub" style="color:var(--text3)">~${dailyAvg}/day avg</div>
+      </div>
+      <div class="nl-stat">
+        <div class="nl-stat-val" style="color:var(--purple)">${leads.length}</div>
+        <div class="nl-stat-lbl">Total Ever</div>
+        <div class="nl-stat-sub" style="color:var(--text3)">all time</div>
+      </div>
+    </div>`;
+
+  if(recent3.length){
+    html += `<div class="nl-recent">
+      <div class="nl-recent-title">Latest new leads added</div>
+      ${recent3.map(l=>{
+        const cat = l.category ? CAT_MAP[l.category] : null;
+        const daysAgo = Math.round((now-new Date(l.createdAt))/msDay);
+        return `<div class="nl-lead-row" onclick="openLeadForm('${l.id}')" style="cursor:pointer">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${cat?cat.icon:'👤'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.name)}</div>
+            <div style="font-size:11px;color:var(--text2)">${l.company?esc(l.company)+' · ':''}<span style="color:${STATUS_HEX[l.status]||'var(--text3)'}">${l.status}</span></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:11px;color:var(--text3);font-weight:600">${daysAgo===0?'Today':daysAgo===1?'Yesterday':daysAgo+'d ago'}</div>
+            ${cat?`<div style="font-size:10px;color:var(--text3)">${cat.icon} ${cat.label}</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD INSIGHTS
+// ══════════════════════════════════════════════════════════════
+let _insightDays = 30;
+
+function setInsightRange(days){
+  _insightDays = days;
+  document.querySelectorAll('#ins-7,#ins-30,#ins-all').forEach(b=>b.classList.remove('active'));
+  const id = days===7?'ins-7':days===30?'ins-30':'ins-all';
+  document.getElementById(id)?.classList.add('active');
+  renderInsights();
+}
+
+function renderInsights(){
+  const el = document.getElementById('insights-content');
+  if(!el) return;
+
+  const today = new Date(); today.setHours(23,59,59,999);
+  const leads = DB.leads;
+
+  // Filter by date range
+  const filtered = _insightDays === 0 ? leads : leads.filter(l=>{
+    if(!l.createdAt) return false;
+    const created = new Date(l.createdAt);
+    const diffDays = (today - created) / (1000*60*60*24);
+    return diffDays <= _insightDays;
+  });
+
+  const rangeLabel = _insightDays===7?'Last 7 Days':_insightDays===30?'Last 30 Days':'All Time';
+  const total = filtered.length;
+
+  if(!total){
+    el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No leads found for ${rangeLabel}</div>`;
+    return;
+  }
+
+  // ── New leads this week vs this month ──
+  const now = new Date();
+  const last7  = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/(1000*60*60*24)<=7).length;
+  const last30 = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/(1000*60*60*24)<=30).length;
+  const last7prev  = leads.filter(l=>l.createdAt && (now-new Date(l.createdAt))/(1000*60*60*24)>7  && (now-new Date(l.createdAt))/(1000*60*60*24)<=14).length;
+  const trend7 = last7 > last7prev ? '↑' : last7 < last7prev ? '↓' : '→';
+  const trendColor7 = last7 > last7prev ? 'var(--green)' : last7 < last7prev ? 'var(--red)' : 'var(--text2)';
+
+  // ── Category breakdown — always ALL leads (not filtered by date) ──
+  const allLeads = DB.leads; // use ALL leads for stage concentration
+  const catCounts = {};
+  CATEGORIES.forEach(c=>{ catCounts[c.key]=allLeads.filter(l=>l.category===c.key).length; });
+  const noCat = allLeads.filter(l=>!l.category).length;
+  const catTotal = allLeads.length || 1;
+  const maxCat = Math.max(...Object.values(catCounts), 1);
+
+  // ── Status breakdown ──
+  const activeSt = STATUSES.filter(s=>s!=='Closed'&&s!=='Lost');
+  const stCounts = {};
+  activeSt.forEach(s=>{ stCounts[s]=filtered.filter(l=>l.status===s).length; });
+  const maxSt = Math.max(...Object.values(stCounts), 1);
+
+  // ── Lead type breakdown ──
+  const newSite = filtered.filter(l=>l.leadType==='New Site'||!l.leadType).length;
+  const existing = filtered.filter(l=>l.leadType==='Existing Client').length;
+
+  // ── Recent leads list (last 5) ──
+  const recent = [...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+
+  let html = '';
+
+  // ── Top stat row ──
+  html += `<div class="ins-row">
+    <div class="ins-card">
+      <div class="ins-val" style="color:var(--primary)">${total}</div>
+      <div class="ins-lbl">${rangeLabel}</div>
+    </div>
+    <div class="ins-card">
+      <div class="ins-val" style="color:var(--green)">${last7} <span style="font-size:14px;color:${trendColor7}">${trend7}</span></div>
+      <div class="ins-lbl">This Week</div>
+    </div>
+    <div class="ins-card">
+      <div class="ins-val" style="color:var(--blue)">${last30}</div>
+      <div class="ins-lbl">This Month</div>
+    </div>
+  </div>`;
+
+  // ── Category concentration ──
+  html += `<div class="ins-insight-box">
+    <div class="ins-insight-title" style="display:flex;justify-content:space-between;align-items:center">
+      🏗️ Construction Stage Concentration
+      <span style="font-size:10px;color:var(--text3);font-weight:600;background:var(--card2);padding:2px 8px;border-radius:20px">All ${DB.leads.length} leads</span>
+    </div>`;
+
+  CATEGORIES.forEach(c=>{
+    const cnt = catCounts[c.key];
+    const pct = Math.round(cnt/catTotal*100);
+    const fillColor = c.cls==='beginning'?'#fb923c':c.cls==='intermediate'?'#60a5fa':'#c084fc';
+    html += `<div class="ins-bar-wrap">
+      <div class="ins-bar-label">
+        <span class="ins-bar-name">${c.icon} ${c.label}<span style="font-size:10px;color:var(--text3)">${c.sub}</span></span>
+        <span class="ins-bar-count" style="color:${fillColor}">${cnt} <span style="font-size:10px;color:var(--text3);font-weight:600">(${pct}%)</span></span>
+      </div>
+      <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+    </div>`;
+  });
+
+  if(noCat>0){
+    const pct=Math.round(noCat/catTotal*100);
+    html+=`<div class="ins-bar-wrap">
+      <div class="ins-bar-label"><span class="ins-bar-name">❓ Not Set</span><span class="ins-bar-count" style="color:var(--text3)">${noCat} (${pct}%)</span></div>
+      <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:var(--border2)"></div></div>
+    </div>`;
+  }
+
+  // Most / Least insight
+  const sortedCats = CATEGORIES.filter(c=>catCounts[c.key]>0).sort((a,b)=>catCounts[b.key]-catCounts[a.key]);
+  const mostCat  = sortedCats[0];
+  const leastCat = sortedCats[sortedCats.length-1];
+  if(mostCat && leastCat && mostCat.key !== leastCat.key){
+    html+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <div style="flex:1;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:8px 12px">
+        <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.4px">MOST FOCUS</div>
+        <div style="font-size:13px;font-weight:800;margin-top:3px">${mostCat.icon} ${mostCat.label}</div>
+        <div style="font-size:11px;color:var(--text2)">${catCounts[mostCat.key]} leads · ${Math.round(catCounts[mostCat.key]/catTotal*100)}%</div>
+      </div>
+      <div style="flex:1;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:8px 12px">
+        <div style="font-size:10px;font-weight:700;color:var(--red);letter-spacing:.4px">LEAST FOCUS</div>
+        <div style="font-size:13px;font-weight:800;margin-top:3px">${leastCat.icon} ${leastCat.label}</div>
+        <div style="font-size:11px;color:var(--text2)">${catCounts[leastCat.key]} leads · ${Math.round(catCounts[leastCat.key]/catTotal*100)}%</div>
+      </div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // ── Pipeline stage breakdown ──
+  html += `<div class="ins-insight-box">
+    <div class="ins-insight-title">📋 Pipeline Stage Breakdown</div>`;
+  activeSt.forEach(s=>{
+    const cnt=stCounts[s];
+    if(!cnt) return;
+    const pct=Math.round(cnt/total*100);
+    const color=STATUS_HEX[s]||'#7a92b8';
+    html+=`<div class="ins-bar-wrap">
+      <div class="ins-bar-label">
+        <span class="ins-bar-name" style="color:${color}">${s}</span>
+        <span class="ins-bar-count" style="color:${color}">${cnt} <span style="font-size:10px;color:var(--text3);font-weight:600">(${pct}%)</span></span>
+      </div>
+      <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // ── New vs Existing ──
+  html+=`<div class="ins-insight-box">
+    <div class="ins-insight-title">🆕 New Sites vs 🔄 Existing Clients</div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;text-align:center;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:12px">
+        <div style="font-size:24px;font-weight:900;color:var(--green)">${newSite}</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-top:3px">🆕 New Sites</div>
+        <div style="font-size:11px;color:var(--text3)">${total>0?Math.round(newSite/total*100):0}% of total</div>
+      </div>
+      <div style="flex:1;text-align:center;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:12px">
+        <div style="font-size:24px;font-weight:900;color:var(--yellow)">${existing}</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-top:3px">🔄 Existing</div>
+        <div style="font-size:11px;color:var(--text3)">${total>0?Math.round(existing/total*100):0}% of total</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Recent leads ──
+  html+=`<div class="ins-insight-box">
+    <div class="ins-insight-title">🕐 Recently Added Leads</div>
+    ${recent.map(l=>{
+      const cat=l.category?CAT_MAP[l.category]:null;
+      const daysAgo=Math.round((now-new Date(l.createdAt))/(1000*60*60*24));
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openLeadForm('${l.id}')">
+        <div style="width:34px;height:34px;border-radius:50%;background:${cat?'rgba(249,115,22,.12)':'var(--card2)'};border:1px solid ${cat?'rgba(249,115,22,.3)':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${cat?cat.icon:'👤'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.name)}</div>
+          <div style="font-size:11px;color:var(--text2)">${l.company?esc(l.company)+' · ':''}<span style="color:${STATUS_HEX[l.status]||'var(--text3)'}">${l.status}</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;color:var(--text3)">${daysAgo===0?'Today':daysAgo===1?'Yesterday':daysAgo+'d ago'}</div>
+          ${cat?`<span class="cat-badge cat-${cat.cls}" style="font-size:10px;padding:1px 7px">${cat.icon} ${cat.label}</span>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  el.innerHTML = html;
 }
 
 // ══════════════════════════════════════════════════════════════
