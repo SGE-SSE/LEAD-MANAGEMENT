@@ -81,12 +81,15 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 /* ── Status badges ── */
 .badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px}
 .badge-New{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.badge-Uncontacted{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
 .badge-Contacted{background:var(--pur-dim);color:var(--purple);border:1px solid rgba(167,139,250,.3)}
-.badge-Interested{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
-.badge-Negotiating{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.3)}
+.badge-Quoted{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.3)}
+.badge-Agreed{background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.4)}
 .badge-Closed{background:rgba(16,185,129,.25);color:#6ee7b7;border:1px solid rgba(16,185,129,.5)}
 .badge-Lost{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
-.badge-Price\ Agreed{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(52,211,153,.4)}
+/* Keep old badges for backwards compat */
+.badge-Interested{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-Negotiating{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.3)}
 
 /* ── Category badges ── */
 .cat-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
@@ -413,7 +416,7 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
         <div class="stat-icon">🔥</div>
         <div class="stat-value" id="s-hot" style="color:var(--primary)">0</div>
         <div class="stat-label">Hot Leads</div>
-        <div class="stat-sub">Interested + Negotiating</div>
+        <div class="stat-sub">Quoted + Agreed</div>
       </div>
       <div class="stat-card green">
         <div class="stat-icon">✅</div>
@@ -496,13 +499,13 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
       </div>
       <div class="chips" id="status-chips">
         <div class="chip active" data-status="All" onclick="filterStatus('All')">All</div>
-        <div class="chip" data-status="New" onclick="filterStatus('New')">New</div>
-        <div class="chip" data-status="Contacted" onclick="filterStatus('Contacted')">Contacted</div>
-        <div class="chip" data-status="Interested" onclick="filterStatus('Interested')">Interested</div>
-        <div class="chip" data-status="Negotiating" onclick="filterStatus('Negotiating')">Negotiating</div>
-        <div class="chip" data-status="Price Agreed" onclick="filterStatus('Price Agreed')">Price Agreed</div>
-        <div class="chip" data-status="Closed" onclick="filterStatus('Closed')">Closed</div>
-        <div class="chip" data-status="Lost" onclick="filterStatus('Lost')">Lost</div>
+        <div class="chip" data-status="New" onclick="filterStatus('New')">🆕 New</div>
+        <div class="chip" data-status="Uncontacted" onclick="filterStatus('Uncontacted')" style="color:var(--red)">📵 Uncontacted</div>
+        <div class="chip" data-status="Contacted" onclick="filterStatus('Contacted')">📞 Contacted</div>
+        <div class="chip" data-status="Quoted" onclick="filterStatus('Quoted')">📄 Quoted</div>
+        <div class="chip" data-status="Agreed" onclick="filterStatus('Agreed')">🤝 Agreed</div>
+        <div class="chip" data-status="Closed" onclick="filterStatus('Closed')">✅ Closed</div>
+        <div class="chip" data-status="Lost" onclick="filterStatus('Lost')">❌ Lost</div>
       </div>
       <div class="chips" id="cat-chips" style="margin-top:6px">
         <div class="chip active" data-cat="All" onclick="filterCat('All')" id="catf-All">🏷️ All Types</div>
@@ -687,6 +690,11 @@ const DB = {
   load() {
     try { this.leads = JSON.parse(localStorage.getItem('cratio_leads')||'[]'); } catch{this.leads=[];}
     try { this.calls = JSON.parse(localStorage.getItem('cratio_calls')||'[]'); } catch{this.calls=[];}
+    // Auto-migrate old status names to new pipeline
+    const oldToNew={'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
+    let changed=false;
+    this.leads.forEach(l=>{ if(oldToNew[l.status]){ l.status=oldToNew[l.status]; changed=true; } });
+    if(changed) this.save();
   },
   save() {
     localStorage.setItem('cratio_leads', JSON.stringify(this.leads));
@@ -710,14 +718,20 @@ const fmtTime=d=>d?new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const STATUS_COLORS = {
-  'New':'var(--blue)', 'Contacted':'var(--purple)', 'Interested':'var(--green)',
-  'Negotiating':'var(--yellow)', 'Price Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'var(--red)'
+  'New':'var(--blue)', 'Uncontacted':'var(--red)', 'Contacted':'var(--purple)',
+  'Quoted':'var(--yellow)', 'Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'var(--red)'
 };
 const STATUS_HEX = {
-  'New':'#3b82f6', 'Contacted':'#a78bfa', 'Interested':'#10b981',
-  'Negotiating':'#f59e0b', 'Price Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'#ef4444'
+  'New':'#3b82f6', 'Uncontacted':'#ef4444', 'Contacted':'#a78bfa',
+  'Quoted':'#f59e0b', 'Agreed':'#34d399', 'Closed':'#6ee7b7', 'Lost':'#ef4444'
 };
-const STATUSES = ['New','Contacted','Interested','Negotiating','Price Agreed','Closed','Lost'];
+const STATUSES = ['New','Uncontacted','Contacted','Quoted','Agreed','Closed','Lost'];
+
+// ── Migrate old status names to new pipeline ──
+function migrateStatus(s){
+  const map={'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
+  return map[s]||s||'New';
+}
 
 // ── Construction-phase categories ──
 const CATEGORIES = [
@@ -952,7 +966,7 @@ function renderDashboard() {
 
   // Stats
   document.getElementById('s-leads').textContent = leads.length;
-  document.getElementById('s-hot').textContent = leads.filter(l=>l.status==='Interested'||l.status==='Negotiating').length;
+  document.getElementById('s-hot').textContent = leads.filter(l=>l.status==='Quoted'||l.status==='Agreed').length;
   document.getElementById('s-closed').textContent = leads.filter(l=>l.status==='Closed').length;
   document.getElementById('s-allcalls').textContent = calls.length;
   const todayMins = todayCalls.reduce((a,c)=>a+(parseInt(c.duration)||0),0);
@@ -1326,26 +1340,40 @@ function openLeadForm(id) {
     <div class="form-group">
       <label class="form-label">Pipeline Stage</label>
       <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:4px">
-        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Tap the current stage of this lead ↓</div>
-        <!-- Row 1: main flow -->
-        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-          ${['New','Contacted','Interested','Negotiating','Price Agreed','Closed'].map((s,i)=>`
-            <div onclick="selectStatus('${s}')" id="stg-${s.replace(' ','-')}"
+        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Tap the current stage ↓</div>
+
+        <!-- Main flow -->
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          ${['New','Contacted','Quoted','Agreed','Closed'].map((s,i)=>`
+            <div onclick="selectStatus('${s}')" id="stg-${s}"
               style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .13s;
-              ${(l.status||'New')===s?`background:${STATUS_HEX[s]}22;border:1.5px solid ${STATUS_HEX[s]};color:${STATUS_HEX[s]}`:'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}"
+              ${migrateStatus(l.status||'New')===s?`background:${STATUS_HEX[s]}22;border:1.5px solid ${STATUS_HEX[s]};color:${STATUS_HEX[s]}`:'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}"
             >${i===0?'':'→ '}${s}</div>`).join('')}
         </div>
-        <!-- Lost separately -->
+
+        <!-- Uncontacted branch -->
+        <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:9px 12px;margin-bottom:8px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:6px;letter-spacing:.4px">NO CONTACT YET?</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div onclick="selectStatus('Uncontacted')" id="stg-Uncontacted"
+              style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .13s;
+              ${migrateStatus(l.status||'New')==='Uncontacted'?'background:rgba(239,68,68,.2);border:1.5px solid #ef4444;color:#ef4444':'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}">
+              📵 Uncontacted — Get Contact First
+            </div>
+          </div>
+        </div>
+
+        <!-- Lost -->
         <div style="display:flex;align-items:center;gap:6px">
           <div style="font-size:11px;color:var(--text3)">Or mark as:</div>
           <div onclick="selectStatus('Lost')" id="stg-Lost"
             style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .13s;
-            ${'Lost'===(l.status||'New')?'background:rgba(239,68,68,.2);border:1.5px solid #ef4444;color:#ef4444':'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}">
-            ❌ Lost
+            ${migrateStatus(l.status||'New')==='Lost'?'background:rgba(239,68,68,.2);border:1.5px solid #ef4444;color:#ef4444':'background:var(--card);border:1.5px solid var(--border);color:var(--text3)'}">
+            ❌ Lost — with Remarks
           </div>
         </div>
       </div>
-      <input type="hidden" id="lf-status" value="${esc(l.status||'New')}">
+      <input type="hidden" id="lf-status" value="${esc(migrateStatus(l.status||'New'))}">
     </div>
 
     <div class="form-group">
@@ -1404,8 +1432,8 @@ function selectLeadType(type){
 
 function selectStatus(s){
   document.getElementById('lf-status').value=s;
-  [...STATUSES].forEach(st=>{
-    const el=document.getElementById('stg-'+st.replace(' ','-'));
+  STATUSES.forEach(st=>{
+    const el=document.getElementById('stg-'+st);
     if(!el)return;
     if(st===s){
       el.style.background=STATUS_HEX[st]+'22';
