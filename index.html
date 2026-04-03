@@ -2870,7 +2870,7 @@ function exportLeads(){
   if(!leads.length){ showToast('No leads to export','error'); return; }
 
   // ── CSV export ──
-  const headers = ['Name','Company','Phone','Email','Status','Source','Address','Latitude','Longitude','GPS Accuracy','Next Follow-up','Notes','Google Maps Link','Created','Updated'];
+  const headers = ['Name','Company','Phone','Email','Pipeline Stage','Construction Stage','Lead Type','Source','Address','Latitude','Longitude','GPS Accuracy','Next Follow-up','Notes','Google Maps Link','Created','Updated'];
 
   const rows = leads.map(l=>{
     const mapsLink = (l.lat && l.lng)
@@ -2878,12 +2878,16 @@ function exportLeads(){
       : l.address
         ? `https://maps.google.com/?q=${encodeURIComponent(l.address)}`
         : '';
+    const cat = l.category ? CAT_MAP[l.category] : null;
+    const catLabel = cat ? cat.label+' ('+cat.sub+')' : '';
     return [
       l.name||'',
       l.company||'',
       l.phone||'',
       l.email||'',
       l.status||'',
+      catLabel,
+      l.leadType||'',
       l.source||'',
       l.address||'',
       l.lat||'',
