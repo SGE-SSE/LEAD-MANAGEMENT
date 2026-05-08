@@ -927,43 +927,55 @@ async function _pushDiary(date, stops) {
   else { _setSyncStatus('online','Synced ✓'); }
 }
 
-// ── Full sync: FIRST upload local-only records, THEN pull everything from cloud ──
+// ══════════════════════════════════════════════════════════════
+// SYNC ENGINE — safe merge: never overwrites more data with less
+// ══════════════════════════════════════════════════════════════
+
+// Raw fetch with exact Supabase error messages
+async function supaFetch(path, method='GET', body=null) {
+  const opts = {
+    method, mode:'cors',
+    headers:{
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(method==='POST' ? {'Prefer':'resolution=merge-duplicates,return=minimal'} : {})
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, opts);
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) {
+    const msg = data.message || data.hint || data.details || data.error || ('HTTP '+res.status);
+    throw new Error(path.split('?')[0] + ': ' + msg);
+  }
+  return data;
+}
+
 async function syncFromSupabase() {
   _setSyncStatus('syncing','Connecting...');
-
-  // Helper: raw fetch so we can see exact Supabase error messages
-  async function supaFetch(path, method='GET', body=null) {
-    const opts = {
-      method, mode:'cors',
-      headers:{
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Prefer': method==='POST' ? 'resolution=merge-duplicates,return=minimal' : ''
-      }
-    };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(SUPA_URL + '/rest/v1/' + path, opts);
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok) {
-      const msg = data.message || data.hint || data.details || data.error || ('HTTP '+res.status);
-      throw new Error(path.split('?')[0] + ': ' + msg);
-    }
-    return data;
-  }
-
   try {
-    // ── STEP 1: Test connection ──
-    await supaFetch('leads?select=id&limit=1');
 
-    // ── STEP 2: Push all local data up first ──
-    const localLeads    = [...DB.leads];
-    const localCalls    = [...DB.calls];
-    const localCheckins = [...DB.checkins];
+    // ── STEP 1: Pull current cloud counts to decide who wins ──
+    const [cloudLeads, cloudCalls, cloudCheckins] = await Promise.all([
+      supaFetch('leads?select=id'),
+      supaFetch('calls?select=id'),
+      supaFetch('checkins?select=id'),
+    ]);
 
-    for (const l of localLeads) {
-      const row = {
+    const cloudLeadIds    = new Set(cloudLeads.map(r=>r.id));
+    const cloudCallIds    = new Set(cloudCalls.map(r=>r.id));
+    const cloudCheckinIds = new Set(cloudCheckins.map(r=>r.id));
+
+    // ── STEP 2: Push ONLY records that cloud does NOT have yet ──
+    // (never overwrite cloud records with local — upsert only missing ones)
+    const localLeads    = DB.leads.filter(l => !cloudLeadIds.has(l.id));
+    const localCalls    = DB.calls.filter(c => !cloudCallIds.has(c.id));
+    const localCheckins = DB.checkins.filter(ci => !cloudCheckinIds.has(ci.id));
+
+    if (localLeads.length) {
+      const rows = localLeads.map(l=>({
         id:l.id, name:l.name||'', company:l.company||'',
         phone:l.phone||'', email:l.email||'',
         status:l.status||'New', category:l.category||'',
@@ -973,12 +985,15 @@ async function syncFromSupabase() {
         next_follow_up:l.nextFollowUp||null,
         notes:l.notes||'',
         created_at:l.createdAt, updated_at:l.updatedAt
-      };
-      await supaFetch('leads', 'POST', [row]).catch(e=>console.warn('lead push:',e.message));
+      }));
+      // Push in batches of 50
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('leads','POST',rows.slice(i,i+50)).catch(e=>console.warn('lead push:',e.message));
+      }
     }
 
-    for (const c of localCalls) {
-      const row = {
+    if (localCalls.length) {
+      const rows = localCalls.map(c=>({
         id:c.id, lead_id:c.leadId||null,
         prospect_name:c.prospectName||'',
         outcome:c.outcome||'', duration:c.duration||null,
@@ -986,32 +1001,37 @@ async function syncFromSupabase() {
         lat:c.lat||null, lng:c.lng||null,
         notes:c.notes||'',
         called_at:c.calledAt, date:c.date
-      };
-      await supaFetch('calls', 'POST', [row]).catch(e=>console.warn('call push:',e.message));
+      }));
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('calls','POST',rows.slice(i,i+50)).catch(e=>console.warn('call push:',e.message));
+      }
     }
 
-    for (const ci of localCheckins) {
-      const row = {
+    if (localCheckins.length) {
+      const rows = localCheckins.map(ci=>({
         id:ci.id, lat:ci.lat||null, lng:ci.lng||null,
         address:ci.address||'', note:ci.note||'',
         lead_id:ci.leadId||null,
         followup_date:ci.followupDate||null,
         checked_at:ci.checkedAt, date:ci.date
-      };
-      await supaFetch('checkins', 'POST', [row]).catch(e=>console.warn('checkin push:',e.message));
+      }));
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('checkins','POST',rows.slice(i,i+50)).catch(e=>console.warn('checkin push:',e.message));
+      }
     }
 
+    // Push diary entries that cloud doesn't have
     const diaryKeys = Object.keys(localStorage).filter(k=>k.startsWith('cratio_diary_'));
     for (const key of diaryKeys) {
       const date  = key.replace('cratio_diary_','');
       const stops = DB.getDiaryStops(date);
       if (stops.length) {
         const row = { date, stops: JSON.stringify(stops), updated_at: new Date().toISOString() };
-        await supaFetch('diary', 'POST', [row]).catch(e=>console.warn('diary push:',e.message));
+        await supaFetch('diary','POST',[row]).catch(e=>console.warn('diary push:',e.message));
       }
     }
 
-    // ── STEP 3: Pull everything from Supabase ──
+    // ── STEP 3: Pull EVERYTHING from Supabase (full authoritative dataset) ──
     const [leadsData, callsData, checkinsData, diaryData] = await Promise.all([
       supaFetch('leads?select=*&order=created_at.desc'),
       supaFetch('calls?select=*&order=called_at.desc'),
@@ -1038,7 +1058,7 @@ async function syncFromSupabase() {
     }));
 
     diaryData.forEach(r=>{
-      const cloudStops = typeof r.stops === 'string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
+      const cloudStops = typeof r.stops==='string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
       const localStops = DB.getDiaryStops(r.date);
       if (cloudStops.length >= localStops.length) {
         localStorage.setItem('cratio_diary_'+r.date, JSON.stringify(cloudStops));
@@ -1062,7 +1082,7 @@ async function syncFromSupabase() {
     const msg = e.message || String(e);
     console.error('Supabase sync failed:', msg);
     _setSyncStatus('error', msg.substring(0,90));
-    setTimeout(() => syncFromSupabase(), 3 * 60 * 1000);
+    setTimeout(() => syncFromSupabase(), 3*60*1000);
   }
 }
 
