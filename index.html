@@ -12,6 +12,93 @@
 <title>Cratio · Lead Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+// ── Minimal Supabase REST client (no SDK, plain fetch, CORS-safe) ──
+const supabase = {
+  _url: null, _key: null,
+  createClient(url, key) { this._url = url; this._key = key; return this; },
+
+  from(table) {
+    const base = this;
+    const state = { table, filters: [], orderCol: null, orderAsc: true, cols: '*', method: 'GET' };
+
+    const api = {
+      select(cols='*') { state.cols = cols; return api; },
+      order(col, { ascending=true }={}) { state.orderCol=col; state.orderAsc=ascending; return api; },
+      eq(col, val)  { state.filters.push(`${col}=eq.${encodeURIComponent(val)}`); return api; },
+
+      async upsert(row) {
+        return base._req('POST', table, row, 'resolution=merge-duplicates,return=minimal');
+      },
+
+      async delete() {
+        // After .eq() has been set, filters are in state
+        return base._req('DELETE', table, null, 'return=minimal', state.filters);
+      },
+
+      // Thenable — used when you do: await _supa.from('x').select().order()
+      then(resolve, reject) {
+        let url = `${base._url}/rest/v1/${table}?select=${state.cols}`;
+        if (state.filters.length) url += '&' + state.filters.join('&');
+        if (state.orderCol) url += `&order=${state.orderCol}.${state.orderAsc?'asc':'desc'}`;
+        fetch(url, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'apikey': base._key,
+            'Authorization': 'Bearer ' + base._key,
+            'Accept': 'application/json'
+          }
+        })
+        .then(async res => {
+          let body;
+          const ct = res.headers.get('content-type')||'';
+          if (ct.includes('json')) {
+            body = await res.json().catch(()=>({}));
+          } else {
+            const txt = await res.text().catch(()=>'');
+            body = txt ? { message: txt } : {};
+          }
+          if (!res.ok) resolve({ data: null, error: body });
+          else resolve({ data: body, error: null });
+        })
+        .catch(e => resolve({ data: null, error: { message: e.message } }));
+      }
+    };
+    return api;
+  },
+
+  async _req(method, table, body, prefer='', filters=[]) {
+    let url = `${this._url}/rest/v1/${table}`;
+    if (filters.length) url += '?' + filters.join('&');
+    try {
+      const res = await fetch(url, {
+        method,
+        mode: 'cors',
+        headers: {
+          'apikey': this._key,
+          'Authorization': 'Bearer ' + this._key,
+          'Content-Type': 'application/json',
+          ...(prefer ? { 'Prefer': prefer } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (!res.ok) {
+        let e;
+        try {
+          const ct = res.headers.get('content-type')||'';
+          if (ct.includes('json')) { e = await res.json(); }
+          else { const t = await res.text(); e = { message: t||'HTTP '+res.status }; }
+        } catch { e = { message: 'HTTP ' + res.status }; }
+        return { data: null, error: e };
+      }
+      return { data: null, error: null };
+    } catch(e) {
+      return { data: null, error: { message: e.message } };
+    }
+  }
+};
+</script>
 <style>
 :root{
   --bg:#060a13;--card:#0c1526;--card2:#111e36;--border:#18294a;--border2:#1f3360;
@@ -386,6 +473,24 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 </head>
 <body>
 
+<!-- ════════ SYNC STATUS BAR ════════ -->
+<div id="sync-bar" style="position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:500;background:rgba(6,10,19,.97);border-bottom:1px solid #18294a;display:flex;align-items:center;justify-content:space-between;padding:6px 14px;font-size:11px;font-family:monospace;backdrop-filter:blur(10px)">
+  <div style="display:flex;align-items:center;gap:7px">
+    <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#2e4166;transition:background .3s"></div>
+    <span id="sync-text" style="color:#4b5e7e">Connecting…</span>
+  </div>
+  <button id="sync-btn" onclick="syncFromSupabase()" style="background:none;border:1px solid #18294a;color:#3b82f6;font-size:10px;font-family:monospace;padding:3px 10px;border-radius:6px;cursor:pointer;font-weight:700">↻ Sync</button>
+</div>
+
+<style>
+#sync-dot.online  { background:#10b981!important; box-shadow:0 0 7px #10b981; }
+#sync-dot.syncing { background:#f59e0b!important; animation:pulse 1s infinite; }
+#sync-dot.error   { background:#ef4444!important; }
+#app { padding-top: 30px; }
+.page { top: 30px !important; }
+#nav  { bottom: 0; }
+</style>
+
 <div id="app">
 
   <!-- ════════ DASHBOARD PAGE ════════ -->
@@ -683,29 +788,246 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// DATA LAYER
+// SUPABASE CONFIG
+// ══════════════════════════════════════════════════════════════
+const SUPA_URL = 'https://btzkefnkuouwbyzcebsd.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emtlZm5rdW91d2J5emNlYnNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNTU5NDAsImV4cCI6MjA5MzczMTk0MH0.UT3n_tDs1AMyXxrZtrLTCtyvW9M8x0Pl08BkA3-V7FU';
+supabase.createClient(SUPA_URL, SUPA_KEY);
+const _supa = supabase;
+
+// ── Sync status UI ──
+let _syncOnline = false;
+function _setSyncStatus(state, msg) {
+  const dot  = document.getElementById('sync-dot');
+  const txt  = document.getElementById('sync-text');
+  if (!dot || !txt) return;
+  dot.className = state;           // 'online' | 'syncing' | 'error' | ''
+  txt.textContent = msg || '';
+  _syncOnline = state === 'online';
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA LAYER  —  localStorage (fast) + Supabase (cloud backup)
 // ══════════════════════════════════════════════════════════════
 const DB = {
-  leads: [], calls: [],
+  leads: [], calls: [], checkins: [],
+
+  // ── Load from localStorage first (instant) ──
   load() {
-    try { this.leads = JSON.parse(localStorage.getItem('cratio_leads')||'[]'); } catch{this.leads=[];}
-    try { this.calls = JSON.parse(localStorage.getItem('cratio_calls')||'[]'); } catch{this.calls=[];}
-    // Auto-migrate old status names to new pipeline
-    const oldToNew={'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
-    let changed=false;
+    try { this.leads    = JSON.parse(localStorage.getItem('cratio_leads')   ||'[]'); } catch{ this.leads=[];    }
+    try { this.calls    = JSON.parse(localStorage.getItem('cratio_calls')   ||'[]'); } catch{ this.calls=[];    }
+    try { this.checkins = JSON.parse(localStorage.getItem('cratio_checkins')||'[]'); } catch{ this.checkins=[]; }
+    // Migrate old status names
+    const oldToNew = {'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
+    let changed = false;
     this.leads.forEach(l=>{ if(oldToNew[l.status]){ l.status=oldToNew[l.status]; changed=true; } });
-    if(changed) this.save();
+    if (changed) this._saveLocal();
   },
-  save() {
-    localStorage.setItem('cratio_leads', JSON.stringify(this.leads));
-    localStorage.setItem('cratio_calls', JSON.stringify(this.calls));
+
+  // ── Save to localStorage ──
+  _saveLocal() {
+    localStorage.setItem('cratio_leads',    JSON.stringify(this.leads));
+    localStorage.setItem('cratio_calls',    JSON.stringify(this.calls));
+    localStorage.setItem('cratio_checkins', JSON.stringify(this.checkins));
   },
-  addLead(l){ this.leads.unshift(l); this.save(); },
-  updateLead(l){ const i=this.leads.findIndex(x=>x.id===l.id); if(i>-1){this.leads[i]=l;this.save();} },
-  deleteLead(id){ this.leads=this.leads.filter(x=>x.id!==id); this.save(); },
-  addCall(c){ this.calls.unshift(c); this.save(); },
-  deleteCall(id){ this.calls=this.calls.filter(x=>x.id!==id); this.save(); },
+
+  // ── Compatibility alias used elsewhere ──
+  save() { this._saveLocal(); },
+
+  // ──────────────────────────────────────────
+  // LEADS
+  // ──────────────────────────────────────────
+  addLead(l) {
+    this.leads.unshift(l);
+    this._saveLocal();
+    _pushLead(l, 'upsert');
+  },
+  updateLead(l) {
+    const i = this.leads.findIndex(x=>x.id===l.id);
+    if (i>-1){ this.leads[i]=l; this._saveLocal(); _pushLead(l, 'upsert'); }
+  },
+  deleteLead(id) {
+    this.leads = this.leads.filter(x=>x.id!==id);
+    this._saveLocal();
+    _deleteSupa('leads', id);
+  },
+
+  // ──────────────────────────────────────────
+  // CALLS
+  // ──────────────────────────────────────────
+  addCall(c) {
+    this.calls.unshift(c);
+    this._saveLocal();
+    _pushCall(c, 'upsert');
+  },
+  deleteCall(id) {
+    this.calls = this.calls.filter(x=>x.id!==id);
+    this._saveLocal();
+    _deleteSupa('calls', id);
+  },
 };
+
+// ══════════════════════════════════════════════════════════════
+// SUPABASE PUSH / PULL HELPERS
+// ══════════════════════════════════════════════════════════════
+
+async function _pushLead(l, op='upsert') {
+  _setSyncStatus('syncing','Syncing…');
+  const row = {
+    id: l.id, name: l.name||'', company: l.company||'',
+    phone: l.phone||'', email: l.email||'',
+    status: l.status||'New', category: l.category||'',
+    lead_type: l.leadType||'', source: l.source||'',
+    address: l.address||'',
+    lat: l.lat||null, lng: l.lng||null, accuracy: l.accuracy||null,
+    next_follow_up: l.nextFollowUp||null,
+    notes: l.notes||'',
+    created_at: l.createdAt, updated_at: l.updatedAt
+  };
+  const { error } = await _supa.from('leads').upsert(row);
+  if (error) { console.error('Lead sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
+async function _pushCall(c, op='upsert') {
+  _setSyncStatus('syncing','Syncing…');
+  const row = {
+    id: c.id, lead_id: c.leadId||null,
+    prospect_name: c.prospectName||'',
+    outcome: c.outcome||'', duration: c.duration||null,
+    address: c.address||'',
+    lat: c.lat||null, lng: c.lng||null,
+    notes: c.notes||'',
+    called_at: c.calledAt, date: c.date
+  };
+  const { error } = await _supa.from('calls').upsert(row);
+  if (error) { console.error('Call sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
+async function _pushCheckin(ci) {
+  _setSyncStatus('syncing','Syncing…');
+  const row = {
+    id: ci.id, lat: ci.lat||null, lng: ci.lng||null,
+    address: ci.address||'', note: ci.note||'',
+    lead_id: ci.leadId||null,
+    followup_date: ci.followupDate||null,
+    checked_at: ci.checkedAt, date: ci.date
+  };
+  const { error } = await _supa.from('checkins').upsert(row);
+  if (error) { console.error('Checkin sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
+async function _deleteSupa(table, id) {
+  const { error } = await _supa.from(table).delete().eq('id', id);
+  if (error) console.error('Delete sync error:', error);
+}
+
+// ── Full pull from Supabase (called on load & manual sync) ──
+async function syncFromSupabase() {
+  _setSyncStatus('syncing','Connecting…');
+  try {
+    const [lr, cr, cir] = await Promise.all([
+      _supa.from('leads').select('*').order('created_at', {ascending:false}),
+      _supa.from('calls').select('*').order('called_at',  {ascending:false}),
+      _supa.from('checkins').select('*').order('checked_at', {ascending:false}),
+    ]);
+
+    const firstErr = lr.error || cr.error || cir.error;
+    if (firstErr) throw new Error(firstErr.message || firstErr.details || JSON.stringify(firstErr));
+
+    // Map snake_case → camelCase
+    DB.leads = (lr.data||[]).map(r=>({
+      id:r.id, name:r.name, company:r.company, phone:r.phone, email:r.email,
+      status:r.status, category:r.category, leadType:r.lead_type, source:r.source,
+      address:r.address, lat:r.lat, lng:r.lng, accuracy:r.accuracy,
+      nextFollowUp:r.next_follow_up, notes:r.notes,
+      createdAt:r.created_at, updatedAt:r.updated_at
+    }));
+    DB.calls = (cr.data||[]).map(r=>({
+      id:r.id, leadId:r.lead_id, prospectName:r.prospect_name,
+      outcome:r.outcome, duration:r.duration, address:r.address,
+      lat:r.lat, lng:r.lng, notes:r.notes, calledAt:r.called_at, date:r.date
+    }));
+    DB.checkins = (cir.data||[]).map(r=>({
+      id:r.id, lat:r.lat, lng:r.lng, address:r.address, note:r.note,
+      leadId:r.lead_id, followupDate:r.followup_date,
+      checkedAt:r.checked_at, date:r.date
+    }));
+
+    const oldToNew={'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
+    DB.leads.forEach(l=>{ if(oldToNew[l.status]) l.status=oldToNew[l.status]; });
+
+    DB._saveLocal();
+    _setSyncStatus('online', `Synced ✓ · ${DB.leads.length} leads`);
+
+    if(_currentPage==='dashboard') renderDashboard();
+    if(_currentPage==='leads')     renderLeads();
+    if(_currentPage==='calls')     renderCalls();
+    if(_currentPage==='reminders') renderReminders();
+    if(_currentPage==='diary')     renderDiary();
+
+  } catch(e) {
+    const msg = e.message || String(e);
+    console.warn('Supabase sync skipped:', msg);
+    if (msg.includes('allowlist') || msg.includes('Allowlist') || msg.includes('not in allow')) {
+      _setSyncStatus('error', '⚠️ Allowlist — tap to fix');
+      const dot = document.getElementById('sync-dot');
+      if (dot) dot.onclick = _showAllowlistBanner;
+    } else {
+      _setSyncStatus('', '📴 Local only');
+    }
+  }
+}
+
+function _showTableSetupBanner(){} // disabled
+function _showCORSBanner(){}       // disabled
+
+function _showAllowlistBanner() {
+  if (document.getElementById('allowlist-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'allowlist-banner';
+  b.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(6,10,19,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:Outfit,sans-serif';
+  b.innerHTML = `
+    <div style="max-width:420px;width:100%">
+      <div style="font-size:48px;text-align:center;margin-bottom:16px">🔓</div>
+      <h2 style="color:#f97316;font-size:20px;font-weight:800;text-align:center;margin-bottom:8px">One Quick Fix Needed</h2>
+      <p style="color:#7a92b8;font-size:14px;text-align:center;margin-bottom:24px">Supabase "Host not in allowlist" error. Disable the allowlist in 30 seconds:</p>
+      <div style="background:#0c1526;border:1px solid #18294a;border-radius:14px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #18294a">
+          <span style="background:#f97316;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">1</span>
+          <span style="color:#dde6f5;font-size:13px">Open <a href="https://supabase.com/dashboard/project/btzkefnkuouwbyzcebsd/settings/api" target="_blank" style="color:#3b82f6">Supabase Project Settings → API</a></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #18294a">
+          <span style="background:#f97316;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">2</span>
+          <span style="color:#dde6f5;font-size:13px">Scroll to <b style="color:#f97316">API Settings</b> section</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #18294a">
+          <span style="background:#f97316;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">3</span>
+          <span style="color:#dde6f5;font-size:13px">Find <b style="color:#f97316">Allowlist</b> toggle → turn it <b style="color:#10b981">OFF</b></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#f97316;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">4</span>
+          <span style="color:#dde6f5;font-size:13px">Click Save → come back → tap Sync button ↻</span>
+        </div>
+      </div>
+      <button onclick="document.getElementById('allowlist-banner').remove();syncFromSupabase()" style="width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-family:Outfit,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">Done! Try Sync Again ↻</button>
+      <button onclick="document.getElementById('allowlist-banner').remove()" style="width:100%;padding:12px;background:#111e36;color:#7a92b8;border:1px solid #18294a;border-radius:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;cursor:pointer">Use Offline (Local Only)</button>
+    </div>`;
+  document.body.appendChild(b);
+}
+
+// ── Push ALL local data up to Supabase (first-time migration) ──
+async function _pushAllLocal() {
+  if (!DB.leads.length && !DB.calls.length) return;
+  _setSyncStatus('syncing','Uploading local data…');
+  for (const l of DB.leads) await _pushLead(l);
+  for (const c of DB.calls) await _pushCall(c);
+  for (const ci of DB.checkins) await _pushCheckin(ci);
+  _setSyncStatus('online',`Uploaded · ${DB.leads.length} leads`);
+}
+
 DB.load();
 
 // ══════════════════════════════════════════════════════════════
@@ -1689,6 +2011,7 @@ function saveVisitToDiary(){
       checkedAt: new Date().toISOString(), date
     });
     _saveCI();
+    _pushCheckin(DB.checkins[0]);
   }
 
   closeModal();
@@ -1801,8 +2124,8 @@ function deleteCall(id) {
 // ══════════════════════════════════════════════════════════════
 // CHECKINS DB
 // ══════════════════════════════════════════════════════════════
-DB.checkins = (()=>{ try{ return JSON.parse(localStorage.getItem('cratio_checkins')||'[]'); }catch{ return []; } })();
-const _saveCI = () => localStorage.setItem('cratio_checkins', JSON.stringify(DB.checkins));
+// checkins now part of DB — _saveCI kept for backward compat
+const _saveCI = () => { localStorage.setItem('cratio_checkins', JSON.stringify(DB.checkins)); };
 
 // ══════════════════════════════════════════════════════════════
 // TIMELINE MAP
@@ -2025,7 +2348,7 @@ function saveCheckin(){
   const linkedLeadId = document.getElementById('ci-lead')?.value||'';
   const followupDate = document.getElementById('ci-followup')?.value||'';
   const ci={id:uid(),lat:document.getElementById('ci-lat').value,lng:document.getElementById('ci-lng').value,address:document.getElementById('ci-addr').value,note:document.getElementById('ci-note').value.trim(),leadId:linkedLeadId,followupDate,checkedAt:new Date().toISOString(),date:todayStr()};
-  DB.checkins.unshift(ci); _saveCI();
+  DB.checkins.unshift(ci); _saveCI(); _pushCheckin(ci);
 
   // If lead linked + follow-up date set → update the lead's follow-up date automatically
   if(linkedLeadId && followupDate){
@@ -2374,8 +2697,10 @@ function saveDiaryStop(type){
   _saveDiaryStops(date,stops);
   // Also save as a checkin for timeline
   if(stop.lat&&stop.lng){
-    DB.checkins.unshift({id:uid(),lat:stop.lat,lng:stop.lng,address:stop.address,note:stop.label,checkedAt:stop.ts,date});
+    const newCi={id:uid(),lat:stop.lat,lng:stop.lng,address:stop.address,note:stop.label,checkedAt:stop.ts,date};
+    DB.checkins.unshift(newCi);
     _saveCI();
+    _pushCheckin(newCi);
   }
   showToast(isFirst?'Journey started! 🏢':'Stop added! 📍','success');
   if(navigator.vibrate)navigator.vibrate(50);
@@ -2936,6 +3261,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   goTo('dashboard');
+
+  // ── Cloud sync: pull latest from Supabase, then push any local-only data ──
+  syncFromSupabase().then(()=>{
+    // After pulling cloud data, push anything that exists only locally
+    // (handles first-time use with existing localStorage data)
+    _pushAllLocal();
+  }).catch(e => {
+    _setSyncStatus('error','Offline — using local data');
+    console.warn('Supabase unavailable, running offline:', e);
+  });
 });
 
 // Handle back button
