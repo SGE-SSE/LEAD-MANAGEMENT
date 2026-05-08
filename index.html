@@ -819,6 +819,13 @@ const DB = {
     localStorage.setItem('cratio_checkins', JSON.stringify(this.checkins));
   },
 
+  // ── Diary localStorage helpers (keyed by date, also synced to Supabase) ──
+  getDiaryStops(date){ try{ return JSON.parse(localStorage.getItem('cratio_diary_'+date)||'[]'); }catch{ return []; } },
+  saveDiaryStops(date, stops){
+    localStorage.setItem('cratio_diary_'+date, JSON.stringify(stops));
+    _pushDiary(date, stops);
+  },
+
   // ── Compatibility alias used elsewhere ──
   save() { this._saveLocal(); },
 
@@ -912,17 +919,46 @@ async function _deleteSupa(table, id) {
   if (error) console.error('Delete sync error:', error);
 }
 
-// ── Full pull from Supabase (called on load & manual sync) ──
+async function _pushDiary(date, stops) {
+  _setSyncStatus('syncing','Syncing…');
+  const row = { date, stops: JSON.stringify(stops), updated_at: new Date().toISOString() };
+  const { error } = await _supa.from('diary').upsert(row);
+  if (error) { console.error('Diary sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
+// ── Full sync: FIRST upload local-only records, THEN pull everything from cloud ──
 async function syncFromSupabase() {
   _setSyncStatus('syncing','Connecting…');
   try {
-    const [lr, cr, cir] = await Promise.all([
+
+    // ── STEP 1: Push any local data that cloud might not have yet ──
+    // Snapshot local before any overwrite
+    const localLeads    = [...DB.leads];
+    const localCalls    = [...DB.calls];
+    const localCheckins = [...DB.checkins];
+
+    if (localLeads.length)    for (const l  of localLeads)    await _pushLead(l);
+    if (localCalls.length)    for (const c  of localCalls)    await _pushCall(c);
+    if (localCheckins.length) for (const ci of localCheckins) await _pushCheckin(ci);
+
+    // Push all diary entries from localStorage
+    const diaryKeys = Object.keys(localStorage).filter(k=>k.startsWith('cratio_diary_'));
+    for (const key of diaryKeys) {
+      const date  = key.replace('cratio_diary_','');
+      const stops = DB.getDiaryStops(date);
+      if (stops.length) await _pushDiary(date, stops);
+    }
+
+    // ── STEP 2: Pull everything from Supabase (now has merged data) ──
+    const [lr, cr, cir, dr] = await Promise.all([
       _supa.from('leads').select('*').order('created_at', {ascending:false}),
       _supa.from('calls').select('*').order('called_at',  {ascending:false}),
       _supa.from('checkins').select('*').order('checked_at', {ascending:false}),
+      _supa.from('diary').select('*').order('date', {ascending:false}),
     ]);
 
-    const firstErr = lr.error || cr.error || cir.error;
+    const firstErr = lr.error || cr.error || cir.error || dr.error;
     if (firstErr) throw new Error(firstErr.message || firstErr.details || JSON.stringify(firstErr));
 
     // Map snake_case → camelCase
@@ -944,6 +980,16 @@ async function syncFromSupabase() {
       checkedAt:r.checked_at, date:r.date
     }));
 
+    // Pull diary entries from cloud into localStorage
+    (dr.data||[]).forEach(r=>{
+      const cloudStops = typeof r.stops === 'string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
+      const localStops = DB.getDiaryStops(r.date);
+      // Cloud wins if it has more stops (most complete data)
+      if (cloudStops.length >= localStops.length) {
+        localStorage.setItem('cratio_diary_'+r.date, JSON.stringify(cloudStops));
+      }
+    });
+
     const oldToNew={'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
     DB.leads.forEach(l=>{ if(oldToNew[l.status]) l.status=oldToNew[l.status]; });
 
@@ -955,11 +1001,11 @@ async function syncFromSupabase() {
     if(_currentPage==='calls')     renderCalls();
     if(_currentPage==='reminders') renderReminders();
     if(_currentPage==='diary')     renderDiary();
+    if(_currentPage==='timeline')  renderTimeline();
 
   } catch(e) {
-    console.warn('Supabase sync skipped:', e.message||e);
-    // Silent retry every 3 min — no negative text shown to user
-    _setSyncStatus('', '');
+    console.warn('Supabase sync failed:', e.message||e);
+    _setSyncStatus('error', 'Sync failed – tap ↻ to retry');
     setTimeout(() => syncFromSupabase(), 3 * 60 * 1000);
   }
 }
@@ -967,15 +1013,8 @@ async function syncFromSupabase() {
 function _showTableSetupBanner(){} // disabled — tables already created
 function _showCORSBanner(){}       // disabled — silent fallback instead
 
-// ── Push ALL local data up to Supabase (first-time migration) ──
-async function _pushAllLocal() {
-  if (!DB.leads.length && !DB.calls.length) return;
-  _setSyncStatus('syncing','Uploading local data…');
-  for (const l of DB.leads) await _pushLead(l);
-  for (const c of DB.calls) await _pushCall(c);
-  for (const ci of DB.checkins) await _pushCheckin(ci);
-  _setSyncStatus('online',`Uploaded · ${DB.leads.length} leads`);
-}
+// Legacy – kept for compatibility, now a no-op (syncFromSupabase handles everything)
+async function _pushAllLocal() { return syncFromSupabase(); }
 
 DB.load();
 
@@ -2401,8 +2440,8 @@ self.addEventListener('fetch',e=>e.respondWith(
 // Data: diary stops stored in localStorage keyed by date
 // Each stop: {id, label, address, lat, lng, ts, type:'start'|'stop'|'end'}
 
-function _getDiaryStops(date){ try{ return JSON.parse(localStorage.getItem('cratio_diary_'+date)||'[]'); }catch{ return []; } }
-function _saveDiaryStops(date, stops){ localStorage.setItem('cratio_diary_'+date, JSON.stringify(stops)); }
+function _getDiaryStops(date){ return DB.getDiaryStops(date); }
+function _saveDiaryStops(date, stops){ DB.saveDiaryStops(date, stops); }
 
 let _diaryGettingLoc = false;
 
@@ -3211,13 +3250,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   goTo('dashboard');
 
-  // ── Cloud sync: pull latest from Supabase, then push any local-only data ──
-  syncFromSupabase().then(()=>{
-    // After pulling cloud data, push anything that exists only locally
-    // (handles first-time use with existing localStorage data)
-    _pushAllLocal();
-  }).catch(e => {
-    _setSyncStatus('', '');
+  // ── Cloud sync: upload local data first, then pull everything from cloud ──
+  syncFromSupabase().catch(e => {
+    _setSyncStatus('error', 'Offline – tap ↻ to retry');
     console.warn('Supabase unavailable, running offline:', e);
   });
 });
