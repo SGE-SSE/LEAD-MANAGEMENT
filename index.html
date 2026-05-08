@@ -929,62 +929,117 @@ async function _pushDiary(date, stops) {
 
 // ── Full sync: FIRST upload local-only records, THEN pull everything from cloud ──
 async function syncFromSupabase() {
-  _setSyncStatus('syncing','Connecting…');
-  try {
+  _setSyncStatus('syncing','Connecting...');
 
-    // ── STEP 1: Push any local data that cloud might not have yet ──
-    // Snapshot local before any overwrite
+  // Helper: raw fetch so we can see exact Supabase error messages
+  async function supaFetch(path, method='GET', body=null) {
+    const opts = {
+      method, mode:'cors',
+      headers:{
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Prefer': method==='POST' ? 'resolution=merge-duplicates,return=minimal' : ''
+      }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(SUPA_URL + '/rest/v1/' + path, opts);
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      const msg = data.message || data.hint || data.details || data.error || ('HTTP '+res.status);
+      throw new Error(path.split('?')[0] + ': ' + msg);
+    }
+    return data;
+  }
+
+  try {
+    // ── STEP 1: Test connection ──
+    await supaFetch('leads?select=id&limit=1');
+
+    // ── STEP 2: Push all local data up first ──
     const localLeads    = [...DB.leads];
     const localCalls    = [...DB.calls];
     const localCheckins = [...DB.checkins];
 
-    if (localLeads.length)    for (const l  of localLeads)    await _pushLead(l);
-    if (localCalls.length)    for (const c  of localCalls)    await _pushCall(c);
-    if (localCheckins.length) for (const ci of localCheckins) await _pushCheckin(ci);
+    for (const l of localLeads) {
+      const row = {
+        id:l.id, name:l.name||'', company:l.company||'',
+        phone:l.phone||'', email:l.email||'',
+        status:l.status||'New', category:l.category||'',
+        lead_type:l.leadType||'', source:l.source||'',
+        address:l.address||'',
+        lat:l.lat||null, lng:l.lng||null, accuracy:l.accuracy||null,
+        next_follow_up:l.nextFollowUp||null,
+        notes:l.notes||'',
+        created_at:l.createdAt, updated_at:l.updatedAt
+      };
+      await supaFetch('leads', 'POST', [row]).catch(e=>console.warn('lead push:',e.message));
+    }
 
-    // Push all diary entries from localStorage
+    for (const c of localCalls) {
+      const row = {
+        id:c.id, lead_id:c.leadId||null,
+        prospect_name:c.prospectName||'',
+        outcome:c.outcome||'', duration:c.duration||null,
+        address:c.address||'',
+        lat:c.lat||null, lng:c.lng||null,
+        notes:c.notes||'',
+        called_at:c.calledAt, date:c.date
+      };
+      await supaFetch('calls', 'POST', [row]).catch(e=>console.warn('call push:',e.message));
+    }
+
+    for (const ci of localCheckins) {
+      const row = {
+        id:ci.id, lat:ci.lat||null, lng:ci.lng||null,
+        address:ci.address||'', note:ci.note||'',
+        lead_id:ci.leadId||null,
+        followup_date:ci.followupDate||null,
+        checked_at:ci.checkedAt, date:ci.date
+      };
+      await supaFetch('checkins', 'POST', [row]).catch(e=>console.warn('checkin push:',e.message));
+    }
+
     const diaryKeys = Object.keys(localStorage).filter(k=>k.startsWith('cratio_diary_'));
     for (const key of diaryKeys) {
       const date  = key.replace('cratio_diary_','');
       const stops = DB.getDiaryStops(date);
-      if (stops.length) await _pushDiary(date, stops);
+      if (stops.length) {
+        const row = { date, stops: JSON.stringify(stops), updated_at: new Date().toISOString() };
+        await supaFetch('diary', 'POST', [row]).catch(e=>console.warn('diary push:',e.message));
+      }
     }
 
-    // ── STEP 2: Pull everything from Supabase (now has merged data) ──
-    const [lr, cr, cir, dr] = await Promise.all([
-      _supa.from('leads').select('*').order('created_at', {ascending:false}),
-      _supa.from('calls').select('*').order('called_at',  {ascending:false}),
-      _supa.from('checkins').select('*').order('checked_at', {ascending:false}),
-      _supa.from('diary').select('*').order('date', {ascending:false}),
+    // ── STEP 3: Pull everything from Supabase ──
+    const [leadsData, callsData, checkinsData, diaryData] = await Promise.all([
+      supaFetch('leads?select=*&order=created_at.desc'),
+      supaFetch('calls?select=*&order=called_at.desc'),
+      supaFetch('checkins?select=*&order=checked_at.desc'),
+      supaFetch('diary?select=*&order=date.desc'),
     ]);
 
-    const firstErr = lr.error || cr.error || cir.error || dr.error;
-    if (firstErr) throw new Error(firstErr.message || firstErr.details || JSON.stringify(firstErr));
-
-    // Map snake_case → camelCase
-    DB.leads = (lr.data||[]).map(r=>({
+    DB.leads = leadsData.map(r=>({
       id:r.id, name:r.name, company:r.company, phone:r.phone, email:r.email,
       status:r.status, category:r.category, leadType:r.lead_type, source:r.source,
       address:r.address, lat:r.lat, lng:r.lng, accuracy:r.accuracy,
       nextFollowUp:r.next_follow_up, notes:r.notes,
       createdAt:r.created_at, updatedAt:r.updated_at
     }));
-    DB.calls = (cr.data||[]).map(r=>({
+    DB.calls = callsData.map(r=>({
       id:r.id, leadId:r.lead_id, prospectName:r.prospect_name,
       outcome:r.outcome, duration:r.duration, address:r.address,
       lat:r.lat, lng:r.lng, notes:r.notes, calledAt:r.called_at, date:r.date
     }));
-    DB.checkins = (cir.data||[]).map(r=>({
+    DB.checkins = checkinsData.map(r=>({
       id:r.id, lat:r.lat, lng:r.lng, address:r.address, note:r.note,
       leadId:r.lead_id, followupDate:r.followup_date,
       checkedAt:r.checked_at, date:r.date
     }));
 
-    // Pull diary entries from cloud into localStorage
-    (dr.data||[]).forEach(r=>{
+    diaryData.forEach(r=>{
       const cloudStops = typeof r.stops === 'string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
       const localStops = DB.getDiaryStops(r.date);
-      // Cloud wins if it has more stops (most complete data)
       if (cloudStops.length >= localStops.length) {
         localStorage.setItem('cratio_diary_'+r.date, JSON.stringify(cloudStops));
       }
@@ -994,7 +1049,7 @@ async function syncFromSupabase() {
     DB.leads.forEach(l=>{ if(oldToNew[l.status]) l.status=oldToNew[l.status]; });
 
     DB._saveLocal();
-    _setSyncStatus('online', `Synced ✓ · ${DB.leads.length} leads`);
+    _setSyncStatus('online', 'Synced ' + DB.leads.length + ' leads');
 
     if(_currentPage==='dashboard') renderDashboard();
     if(_currentPage==='leads')     renderLeads();
@@ -1004,8 +1059,9 @@ async function syncFromSupabase() {
     if(_currentPage==='timeline')  renderTimeline();
 
   } catch(e) {
-    console.warn('Supabase sync failed:', e.message||e);
-    _setSyncStatus('error', 'Sync failed – tap ↻ to retry');
+    const msg = e.message || String(e);
+    console.error('Supabase sync failed:', msg);
+    _setSyncStatus('error', msg.substring(0,90));
     setTimeout(() => syncFromSupabase(), 3 * 60 * 1000);
   }
 }
