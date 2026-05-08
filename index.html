@@ -957,10 +957,9 @@ async function syncFromSupabase() {
     if(_currentPage==='diary')     renderDiary();
 
   } catch(e) {
-    const msg = e.message || String(e);
-    console.warn('Supabase sync skipped:', msg);
-    // Auto-retry every 3 minutes — Supabase may have a temporary outage
-    _setSyncStatus('', '⏳ Retrying sync…');
+    console.warn('Supabase sync skipped:', e.message||e);
+    // Silent retry every 3 min — no negative text shown to user
+    _setSyncStatus('', '');
     setTimeout(() => syncFromSupabase(), 3 * 60 * 1000);
   }
 }
@@ -3218,7 +3217,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // (handles first-time use with existing localStorage data)
     _pushAllLocal();
   }).catch(e => {
-    _setSyncStatus('error','Offline — using local data');
+    _setSyncStatus('', '');
     console.warn('Supabase unavailable, running offline:', e);
   });
 });
