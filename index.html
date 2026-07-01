@@ -1041,7 +1041,7 @@ async function syncFromSupabase() {
 
     DB.leads = leadsData.map(r=>({
       id:r.id, name:r.name, company:r.company, phone:r.phone, email:r.email,
-      status:r.status, category:r.category, leadType:r.lead_type, source:r.source,
+      status:r.status||'New', category:r.category, leadType:r.lead_type, source:r.source,
       address:r.address, lat:r.lat, lng:r.lng, accuracy:r.accuracy,
       nextFollowUp:r.next_follow_up, notes:r.notes,
       createdAt:r.created_at, updatedAt:r.updated_at
@@ -1431,7 +1431,7 @@ function renderDashboard() {
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
               ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
-              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+              <span class="badge badge-${(l.status||'New').replace(' ','\\ ')}">${l.status||'New'}</span>
             </div>
           </div>
           <div class="rm-card-actions">
@@ -1468,7 +1468,7 @@ function renderDashboard() {
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
               ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
-              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+              <span class="badge badge-${(l.status||'New').replace(' ','\\ ')}">${l.status||'New'}</span>
               ${l.phone?`<span style="font-size:11px;color:var(--text2)">📱 ${esc(l.phone)}</span>`:''}
             </div>
           </div>
@@ -1507,7 +1507,7 @@ function renderDashboard() {
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
               ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
-              <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+              <span class="badge badge-${(l.status||'New').replace(' ','\\ ')}">${l.status||'New'}</span>
             </div>
           </div>
         </div>`;
@@ -1600,7 +1600,7 @@ function renderLeads() {
         <div class="lead-meta" style="margin-top:6px;flex-wrap:wrap;gap:5px">
           ${cat?`<span class="cat-badge cat-${cat.cls}">${cat.icon} ${cat.label}</span>`:''}
           ${l.leadType?`<span class="${l.leadType==='New Site'?'lead-type-new':'lead-type-old'}">${l.leadType==='New Site'?'🆕':'🔄'} ${l.leadType}</span>`:''}
-          <span class="badge badge-${l.status.replace(' ','\\ ')}">${l.status}</span>
+          <span class="badge badge-${(l.status||'New').replace(' ','\\ ')}">${l.status||'New'}</span>
           ${l.source?`<span style="font-size:10px;color:var(--text3)">${esc(l.source)}</span>`:''}
         </div>
         ${l.phone?`<div class="lead-phone" style="margin-top:6px">📱 ${esc(l.phone)}</div>`:''}
