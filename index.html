@@ -126,7 +126,7 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .nav-btn.active{color:var(--primary)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
 .nav-btn span{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:20%;transition:left .2s cubic-bezier(.4,0,.2,1)}
+.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:16.6667%;transition:left .2s cubic-bezier(.4,0,.2,1)}
 
 /* ── Page Header ── */
 .ph{position:sticky;top:0;z-index:50;background:rgba(6,10,19,.97);backdrop-filter:blur(20px);
@@ -451,6 +451,36 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .tl-date-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px 8px;font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
 .tl-date-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
 
+/* ════ TASKS STYLES ════ */
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s;cursor:pointer}
+.task-card:active{border-color:var(--primary)}
+.task-card.completed{opacity:.5}
+.task-checkbox{width:24px;height:24px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px;transition:all .15s;background:var(--card2)}
+.task-checkbox.checked{background:var(--green);border-color:var(--green)}
+.task-title{font-size:15px;font-weight:700;line-height:1.35}
+.task-title.done{text-decoration:line-through;color:var(--text2)}
+.task-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;align-items:center}
+.task-due{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;font-weight:600}
+.task-due.overdue{color:var(--red);font-weight:800}
+.priority-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.3px}
+.priority-Urgent{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.35)}
+.priority-Important{background:var(--yel-dim);color:var(--yellow);border:1px solid rgba(245,158,11,.35)}
+.priority-Normal{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.35)}
+.task-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.priority-selector{display:flex;gap:8px;margin-bottom:4px}
+.pri-opt{flex:1;padding:10px 6px;border-radius:12px;border:1.5px solid var(--border);background:var(--card2);text-align:center;cursor:pointer;transition:all .13s}
+.pri-opt.selected.Urgent{border-color:var(--red);background:rgba(239,68,68,.1)}
+.pri-opt.selected.Important{border-color:var(--yellow);background:rgba(245,158,11,.1)}
+.pri-opt.selected.Normal{border-color:var(--blue);background:rgba(59,130,246,.1)}
+.pri-opt-icon{font-size:18px;margin-bottom:4px}
+.pri-opt-label{font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--text2)}
+.pri-opt.selected .pri-opt-label{color:var(--text)}
+.task-pri-stat{flex:1;text-align:center;border-radius:12px;padding:10px 6px}
+.task-pri-stat-val{font-size:20px;font-weight:900}
+.task-pri-stat-lbl{font-size:10px;color:var(--text2);font-weight:700;margin-top:2px;letter-spacing:.3px}
+
 /* ── Install banner ── */
 #install-banner{display:none;position:fixed;bottom:calc(var(--nav) + 10px + var(--safe-bot));left:10px;right:10px;z-index:300;
   background:linear-gradient(135deg,#1a2744,#0d1e3d);border:1px solid var(--primary);border-radius:var(--radius-sm);
@@ -553,6 +583,18 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
           Diary
         </button>
       </div>
+    </div>
+
+    <!-- ── PENDING TASKS (by priority) ── -->
+    <div class="section" style="margin-top:16px">
+      <div class="section-title">
+        📌 Pending Tasks
+        <div style="display:flex;gap:10px;align-items:center">
+          <button onclick="openTaskForm()" style="background:none;border:none;font-size:11px;color:var(--primary);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">+ Add</button>
+          <button onclick="goTo('tasks')" style="background:none;border:none;font-size:11px;color:var(--text2);font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">See All →</button>
+        </div>
+      </div>
+      <div id="dash-tasks-wrap"></div>
     </div>
 
     <div class="section" style="margin-top:16px;padding-bottom:24px">
@@ -714,6 +756,31 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div id="diary-stops-list" style="padding:14px 16px 100px"></div>
   </div>
 
+  <!-- ════════ TASKS PAGE ════════ -->
+  <div class="page" id="page-tasks">
+    <div class="ph">
+      <div class="ph-row">
+        <div>
+          <div class="ph-title">✅ Tasks</div>
+          <div class="ph-sub">Daily activities &amp; to-dos</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openTaskForm()">+ Add Task</button>
+      </div>
+      <div class="chips" id="task-status-chips" style="margin-top:10px">
+        <div class="chip active" data-tstatus="Pending" onclick="filterTaskStatus('Pending')">🕒 Pending</div>
+        <div class="chip" data-tstatus="Completed" onclick="filterTaskStatus('Completed')">✅ Completed</div>
+        <div class="chip" data-tstatus="All" onclick="filterTaskStatus('All')">📋 All</div>
+      </div>
+      <div class="chips" id="task-priority-chips" style="margin-top:6px">
+        <div class="chip active" data-tpriority="All" onclick="filterTaskPriority('All')">🏷️ All Priority</div>
+        <div class="chip" data-tpriority="Urgent" onclick="filterTaskPriority('Urgent')" style="color:var(--red)">🔴 Urgent</div>
+        <div class="chip" data-tpriority="Important" onclick="filterTaskPriority('Important')" style="color:var(--yellow)">🟠 Important</div>
+        <div class="chip" data-tpriority="Normal" onclick="filterTaskPriority('Normal')" style="color:var(--blue)">🔵 Normal</div>
+      </div>
+    </div>
+    <div style="padding:12px 16px 90px" id="tasks-list"></div>
+  </div>
+
   <!-- ════════ REMINDERS PAGE ════════ -->
   <div class="page" id="page-reminders">
     <div class="ph">
@@ -749,6 +816,11 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
   <button class="nav-btn" id="nav-diary" onclick="goTo('diary')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
     <span>Diary</span>
+  </button>
+  <button class="nav-btn" id="nav-tasks" onclick="goTo('tasks')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <span>Tasks</span>
+    <span class="rm-nav-badge" id="task-nav-badge" style="display:none">0</span>
   </button>
 </nav>
 
@@ -798,13 +870,14 @@ function _setSyncStatus(state, msg) {
 // DATA LAYER  —  localStorage (fast) + Supabase (cloud backup)
 // ══════════════════════════════════════════════════════════════
 const DB = {
-  leads: [], calls: [], checkins: [],
+  leads: [], calls: [], checkins: [], tasks: [],
 
   // ── Load from localStorage first (instant) ──
   load() {
     try { this.leads    = JSON.parse(localStorage.getItem('cratio_leads')   ||'[]'); } catch{ this.leads=[];    }
     try { this.calls    = JSON.parse(localStorage.getItem('cratio_calls')   ||'[]'); } catch{ this.calls=[];    }
     try { this.checkins = JSON.parse(localStorage.getItem('cratio_checkins')||'[]'); } catch{ this.checkins=[]; }
+    try { this.tasks    = JSON.parse(localStorage.getItem('cratio_tasks')   ||'[]'); } catch{ this.tasks=[];    }
     // Migrate old status names
     const oldToNew = {'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
     let changed = false;
@@ -817,6 +890,7 @@ const DB = {
     localStorage.setItem('cratio_leads',    JSON.stringify(this.leads));
     localStorage.setItem('cratio_calls',    JSON.stringify(this.calls));
     localStorage.setItem('cratio_checkins', JSON.stringify(this.checkins));
+    localStorage.setItem('cratio_tasks',    JSON.stringify(this.tasks));
   },
 
   // ── Diary localStorage helpers (keyed by date, also synced to Supabase) ──
@@ -859,6 +933,24 @@ const DB = {
     this.calls = this.calls.filter(x=>x.id!==id);
     this._saveLocal();
     _deleteSupa('calls', id);
+  },
+
+  // ──────────────────────────────────────────
+  // TASKS
+  // ──────────────────────────────────────────
+  addTask(t) {
+    this.tasks.unshift(t);
+    this._saveLocal();
+    _pushTask(t);
+  },
+  updateTask(t) {
+    const i = this.tasks.findIndex(x=>x.id===t.id);
+    if (i>-1){ this.tasks[i]=t; this._saveLocal(); _pushTask(t); }
+  },
+  deleteTask(id) {
+    this.tasks = this.tasks.filter(x=>x.id!==id);
+    this._saveLocal();
+    _deleteSupa('tasks', id);
   },
 };
 
@@ -914,6 +1006,19 @@ async function _pushCheckin(ci) {
   else { _setSyncStatus('online','Synced ✓'); }
 }
 
+async function _pushTask(t) {
+  _setSyncStatus('syncing','Syncing…');
+  const row = {
+    id: t.id, title: t.title||'', priority: t.priority||'Normal',
+    due_date: t.dueDate||null, notes: t.notes||'',
+    completed: !!t.completed,
+    created_at: t.createdAt, updated_at: t.updatedAt
+  };
+  const { error } = await _supa.from('tasks').upsert(row);
+  if (error) { console.error('Task sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
 async function _deleteSupa(table, id) {
   const { error } = await _supa.from(table).delete().eq('id', id);
   if (error) console.error('Delete sync error:', error);
@@ -958,21 +1063,24 @@ async function syncFromSupabase() {
   try {
 
     // ── STEP 1: Pull current cloud counts to decide who wins ──
-    const [cloudLeads, cloudCalls, cloudCheckins] = await Promise.all([
+    const [cloudLeads, cloudCalls, cloudCheckins, cloudTasks] = await Promise.all([
       supaFetch('leads?select=id'),
       supaFetch('calls?select=id'),
       supaFetch('checkins?select=id'),
+      supaFetch('tasks?select=id').catch(()=>[]),
     ]);
 
     const cloudLeadIds    = new Set(cloudLeads.map(r=>r.id));
     const cloudCallIds    = new Set(cloudCalls.map(r=>r.id));
     const cloudCheckinIds = new Set(cloudCheckins.map(r=>r.id));
+    const cloudTaskIds    = new Set((cloudTasks||[]).map(r=>r.id));
 
     // ── STEP 2: Push ONLY records that cloud does NOT have yet ──
     // (never overwrite cloud records with local — upsert only missing ones)
     const localLeads    = DB.leads.filter(l => !cloudLeadIds.has(l.id));
     const localCalls    = DB.calls.filter(c => !cloudCallIds.has(c.id));
     const localCheckins = DB.checkins.filter(ci => !cloudCheckinIds.has(ci.id));
+    const localTasks    = DB.tasks.filter(t => !cloudTaskIds.has(t.id));
 
     if (localLeads.length) {
       const rows = localLeads.map(l=>({
@@ -1020,6 +1128,18 @@ async function syncFromSupabase() {
       }
     }
 
+    if (localTasks.length) {
+      const rows = localTasks.map(t=>({
+        id:t.id, title:t.title||'', priority:t.priority||'Normal',
+        due_date:t.dueDate||null, notes:t.notes||'',
+        completed: !!t.completed,
+        created_at:t.createdAt, updated_at:t.updatedAt
+      }));
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('tasks','POST',rows.slice(i,i+50)).catch(e=>console.warn('task push:',e.message));
+      }
+    }
+
     // Push diary entries that cloud doesn't have
     const diaryKeys = Object.keys(localStorage).filter(k=>k.startsWith('cratio_diary_'));
     for (const key of diaryKeys) {
@@ -1032,11 +1152,12 @@ async function syncFromSupabase() {
     }
 
     // ── STEP 3: Pull EVERYTHING from Supabase (full authoritative dataset) ──
-    const [leadsData, callsData, checkinsData, diaryData] = await Promise.all([
+    const [leadsData, callsData, checkinsData, diaryData, tasksData] = await Promise.all([
       supaFetch('leads?select=*&order=created_at.desc'),
       supaFetch('calls?select=*&order=called_at.desc'),
       supaFetch('checkins?select=*&order=checked_at.desc'),
       supaFetch('diary?select=*&order=date.desc'),
+      supaFetch('tasks?select=*&order=created_at.desc').catch(()=>[]),
     ]);
 
     DB.leads = leadsData.map(r=>({
@@ -1056,6 +1177,13 @@ async function syncFromSupabase() {
       leadId:r.lead_id, followupDate:r.followup_date,
       checkedAt:r.checked_at, date:r.date
     }));
+    if (tasksData && tasksData.length) {
+      DB.tasks = tasksData.map(r=>({
+        id:r.id, title:r.title, priority:r.priority||'Normal',
+        dueDate:r.due_date, notes:r.notes, completed: !!r.completed,
+        createdAt:r.created_at, updatedAt:r.updated_at
+      }));
+    }
 
     diaryData.forEach(r=>{
       const cloudStops = typeof r.stops==='string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
@@ -1077,6 +1205,7 @@ async function syncFromSupabase() {
     if(_currentPage==='reminders') renderReminders();
     if(_currentPage==='diary')     renderDiary();
     if(_currentPage==='timeline')  renderTimeline();
+    if(_currentPage==='tasks')     renderTasks();
 
   } catch(e) {
     const msg = e.message || String(e);
@@ -1303,13 +1432,14 @@ function closeModal(e) {
   document.getElementById('modal-overlay').classList.remove('show');
   document.body.style.overflow='';
   _editingLead = null;
+  _editingTask = null;
 }
 
 // ══════════════════════════════════════════════════════════════
 // ROUTER
 // ══════════════════════════════════════════════════════════════
 let _currentPage = 'dashboard';
-const PAGES=['dashboard','leads','reminders','timeline','diary'];;
+const PAGES=['dashboard','leads','reminders','timeline','diary','tasks'];;
 let _statusFilter = 'All';
 
 function goTo(page) {
@@ -1320,19 +1450,21 @@ function goTo(page) {
   const navEl = document.getElementById('nav-'+page);
   if(navEl) navEl.classList.add('active');
   const idx = PAGES.indexOf(page);
-  if(idx>=0) document.getElementById('nav-indicator').style.left = (idx*20)+'%';
+  if(idx>=0) document.getElementById('nav-indicator').style.left = (idx*(100/6))+'%';
   const fab = document.getElementById('page-fab');
-  fab.style.display=(page==='leads')?'flex':'none';
+  fab.style.display=(page==='leads'||page==='tasks')?'flex':'none';
   _currentPage = page;
   if (page==='dashboard') renderDashboard();
   if (page==='leads') renderLeads();
   if (page==='calls') renderCalls();
   if (page==='reminders') renderReminders();
   if (page==='diary') renderDiary();
+  if (page==='tasks') renderTasks();
 }
 
 function fabAction() {
   if (_currentPage==='leads') openLeadForm();
+  if (_currentPage==='tasks') openTaskForm();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1520,6 +1652,7 @@ function renderDashboard() {
   // Render new leads banner and insights
   renderNewLeadsBanner();
   renderInsights();
+  renderDashboardTasks();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3249,6 +3382,215 @@ function renderInsights(){
   </div>`;
 
   el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TASKS  —  Daily Activity / To-Do list with priority
+// ══════════════════════════════════════════════════════════════
+let _taskStatusFilter   = 'Pending';
+let _taskPriorityFilter = 'All';
+let _editingTask        = null;
+let _tkSelectedPriority = 'Important';
+
+const TASK_PRIORITIES  = ['Urgent','Important','Normal'];
+const PRIORITY_ORDER   = { Urgent:0, Important:1, Normal:2 };
+const PRIORITY_ICON    = { Urgent:'🔴', Important:'🟠', Normal:'🔵' };
+const PRIORITY_HEX     = { Urgent:'#ef4444', Important:'#f59e0b', Normal:'#3b82f6' };
+
+function filterTaskStatus(status){
+  _taskStatusFilter = status;
+  document.querySelectorAll('[data-tstatus]').forEach(c=>c.classList.toggle('active', c.dataset.tstatus===status));
+  renderTasks();
+}
+function filterTaskPriority(p){
+  _taskPriorityFilter = p;
+  document.querySelectorAll('[data-tpriority]').forEach(c=>c.classList.toggle('active', c.dataset.tpriority===p));
+  renderTasks();
+}
+
+function sortTasks(tasks){
+  return [...tasks].sort((a,b)=>{
+    if (!!a.completed !== !!b.completed) return a.completed ? 1 : -1;
+    const pd = (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
+    if (pd !== 0) return pd;
+    const ad = a.dueDate || '9999-99-99', bd = b.dueDate || '9999-99-99';
+    if (ad !== bd) return ad.localeCompare(bd);
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+}
+
+function taskCardHtml(t, today){
+  const overdue = t.dueDate && t.dueDate < today && !t.completed;
+  return `<div class="task-card ${t.completed?'completed':''}">
+      <div class="task-checkbox ${t.completed?'checked':''}" onclick="event.stopPropagation();toggleTaskComplete('${t.id}')">
+        ${t.completed?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':''}
+      </div>
+      <div style="flex:1;min-width:0" onclick="openTaskForm('${t.id}')">
+        <div class="task-title ${t.completed?'done':''}">${esc(t.title)}</div>
+        <div class="task-meta">
+          <span class="priority-badge priority-${t.priority}">${PRIORITY_ICON[t.priority]||'🔵'} ${t.priority}</span>
+          ${t.dueDate?`<span class="task-due ${overdue?'overdue':''}">📅 ${fmtDate(t.dueDate)}${overdue?' · Overdue':''}</span>`:''}
+        </div>
+        ${t.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.4">${esc(t.notes)}</div>`:''}
+      </div>
+      <div class="task-actions">
+        <button class="btn-icon" style="padding:6px" onclick="event.stopPropagation();openTaskForm('${t.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>
+        </button>
+        <button class="btn-icon" style="padding:6px" onclick="event.stopPropagation();deleteTaskAsk('${t.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+function renderTasks(){
+  const el = document.getElementById('tasks-list');
+  if(!el) return;
+  let tasks = DB.tasks.slice();
+  if (_taskStatusFilter==='Pending')        tasks = tasks.filter(t=>!t.completed);
+  else if (_taskStatusFilter==='Completed') tasks = tasks.filter(t=>t.completed);
+  if (_taskPriorityFilter!=='All')          tasks = tasks.filter(t=>t.priority===_taskPriorityFilter);
+  tasks = sortTasks(tasks);
+
+  if (!tasks.length) {
+    const msg = _taskStatusFilter==='Completed' ? 'No completed tasks yet' : 'No pending tasks';
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">${msg}</div><div class="empty-sub">Tap + Add Task to log a daily activity or to-do</div></div>`;
+    return;
+  }
+  const today = todayStr();
+  el.innerHTML = tasks.map(t=>taskCardHtml(t, today)).join('');
+}
+
+function renderDashboardTasks(){
+  const wrap = document.getElementById('dash-tasks-wrap');
+  if (!wrap) return;
+  const today   = todayStr();
+  const pending = DB.tasks.filter(t=>!t.completed);
+  const counts  = { Urgent:0, Important:0, Normal:0 };
+  pending.forEach(t=>{ counts[t.priority]!==undefined ? counts[t.priority]++ : counts.Normal++; });
+
+  const badgeCount = pending.filter(t=>t.priority==='Urgent' || (t.dueDate && t.dueDate<today)).length;
+  const tnb = document.getElementById('task-nav-badge');
+  if (tnb){ tnb.textContent = badgeCount||''; tnb.style.display = badgeCount?'':'none'; }
+
+  let html = `<div style="display:flex;gap:8px;margin-bottom:10px">
+    <div class="task-pri-stat" style="background:var(--red-dim);border:1px solid rgba(239,68,68,.3)">
+      <div class="task-pri-stat-val" style="color:var(--red)">${counts.Urgent}</div>
+      <div class="task-pri-stat-lbl">🔴 URGENT</div>
+    </div>
+    <div class="task-pri-stat" style="background:var(--yel-dim);border:1px solid rgba(245,158,11,.3)">
+      <div class="task-pri-stat-val" style="color:var(--yellow)">${counts.Important}</div>
+      <div class="task-pri-stat-lbl">🟠 IMPORTANT</div>
+    </div>
+    <div class="task-pri-stat" style="background:var(--blue-dim);border:1px solid rgba(59,130,246,.3)">
+      <div class="task-pri-stat-val" style="color:var(--blue)">${counts.Normal}</div>
+      <div class="task-pri-stat-lbl">🔵 NORMAL</div>
+    </div>
+  </div>`;
+
+  if (!pending.length) {
+    html += `<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">🎉 No pending tasks. You're all caught up!</div>`;
+  } else {
+    const sorted = sortTasks(pending).slice(0,5);
+    html += sorted.map(t=>taskCardHtml(t, today)).join('');
+    if (pending.length>5) {
+      html += `<div onclick="goTo('tasks')" style="text-align:center;padding:10px;font-size:12px;color:var(--primary);font-weight:700;cursor:pointer;background:var(--pri-dim);border-radius:10px">+${pending.length-5} more pending → View All</div>`;
+    }
+  }
+  wrap.innerHTML = html;
+}
+
+function toggleTaskComplete(id){
+  const t = DB.tasks.find(x=>x.id===id);
+  if (!t) return;
+  t.completed  = !t.completed;
+  t.updatedAt  = new Date().toISOString();
+  DB.save();
+  _pushTask(t);
+  renderTasks();
+  if (_currentPage==='dashboard') renderDashboardTasks();
+  showToast(t.completed ? '✅ Task completed!' : 'Task marked pending', 'success');
+}
+
+function deleteTaskAsk(id){
+  const t = DB.tasks.find(x=>x.id===id);
+  if (!t) return;
+  showModal('Delete Task?',
+    `<div style="font-size:14px;color:var(--text2);line-height:1.6">Are you sure you want to delete <strong style="color:var(--text)">${esc(t.title)}</strong>? This cannot be undone.</div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-danger" onclick="confirmDeleteTask('${id}')">Delete</button>`);
+}
+function confirmDeleteTask(id){
+  DB.deleteTask(id);
+  closeModal();
+  renderTasks();
+  if (_currentPage==='dashboard') renderDashboardTasks();
+  showToast('Task deleted', 'success');
+}
+
+function selectTaskPriority(p){
+  document.querySelectorAll('.pri-opt').forEach(el=>{ el.className='pri-opt'; });
+  const el = document.getElementById('priopt-'+p);
+  if (el) el.className = 'pri-opt selected '+p;
+  _tkSelectedPriority = p;
+}
+
+function openTaskForm(id){
+  _editingTask = id ? DB.tasks.find(t=>t.id===id) : null;
+  const t = _editingTask || { title:'', priority:'Important', dueDate:'', notes:'' };
+  _tkSelectedPriority = t.priority || 'Important';
+
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Task Title</label>
+      <input class="form-input" id="tk-title" placeholder="e.g. Call cement supplier" value="${esc(t.title)}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Priority</label>
+      <div class="priority-selector" id="tk-priority-selector">
+        ${TASK_PRIORITIES.map(p=>`
+          <div class="pri-opt ${_tkSelectedPriority===p?'selected '+p:''}" id="priopt-${p}" onclick="selectTaskPriority('${p}')">
+            <div class="pri-opt-icon">${PRIORITY_ICON[p]}</div>
+            <div class="pri-opt-label">${p}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Due Date (optional)</label>
+      <input type="date" class="form-input" id="tk-due" value="${t.dueDate||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="tk-notes" rows="3" placeholder="Any details...">${esc(t.notes||'')}</textarea>
+    </div>
+  `;
+  const footer = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveTask()">${_editingTask?'Update Task':'Add Task'}</button>
+  `;
+  showModal(_editingTask?'Edit Task':'New Task', body, footer);
+}
+
+function saveTask(){
+  const title = document.getElementById('tk-title').value.trim();
+  if (!title) { showToast('Please enter a task title', 'error'); return; }
+  const dueDate  = document.getElementById('tk-due').value || '';
+  const notes    = document.getElementById('tk-notes').value.trim();
+  const priority = _tkSelectedPriority || 'Important';
+  const now = new Date().toISOString();
+
+  if (_editingTask) {
+    const t = _editingTask;
+    t.title = title; t.priority = priority; t.dueDate = dueDate; t.notes = notes; t.updatedAt = now;
+    DB.updateTask(t);
+  } else {
+    DB.addTask({ id: uid(), title, priority, dueDate, notes, completed:false, createdAt: now, updatedAt: now });
+  }
+  closeModal();
+  renderTasks();
+  if (_currentPage==='dashboard') renderDashboardTasks();
+  showToast(_editingTask ? '✅ Task updated!' : '✅ Task added!', 'success');
 }
 
 // ══════════════════════════════════════════════════════════════
