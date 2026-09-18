@@ -764,7 +764,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
           <div class="ph-title">✅ Tasks</div>
           <div class="ph-sub">Daily activities &amp; to-dos</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openTaskForm()">+ Add Task</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-icon" id="notif-btn" onclick="enableTaskNotifications()" title="Enable task notifications" style="font-size:16px">🔔</button>
+          <button class="btn btn-primary btn-sm" onclick="openTaskForm()">+ Add Task</button>
+        </div>
       </div>
       <div class="chips" id="task-status-chips" style="margin-top:10px">
         <div class="chip active" data-tstatus="Pending" onclick="filterTaskStatus('Pending')">🕒 Pending</div>
@@ -854,6 +857,9 @@ const SUPA_URL = 'https://btzkefnkuouwbyzcebsd.supabase.co';
 const SUPA_KEY = 'sb_publishable_X5uX19zEqxl5yQfGKXknmg_6bPQ9ZbS';
 supabase.createClient(SUPA_URL, SUPA_KEY);
 const _supa = supabase;
+
+// ── Push notifications (VAPID public key — safe to expose client-side) ──
+const VAPID_PUBLIC_KEY = 'BFjIDaEiUwaJzkJVcychD4OhhYYNAYng4rZxcpiLpm0upUlUPT1wiu6T98pqO63IIQU3_qCaP2tv8dMQy-fV8Xg';
 
 // ── Sync status UI ──
 let _syncOnline = false;
@@ -1459,7 +1465,7 @@ function goTo(page) {
   if (page==='calls') renderCalls();
   if (page==='reminders') renderReminders();
   if (page==='diary') renderDiary();
-  if (page==='tasks') renderTasks();
+  if (page==='tasks') { renderTasks(); updateNotifBtn(); }
 }
 
 function fabAction() {
@@ -3594,6 +3600,89 @@ function saveTask(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// TASK PUSH NOTIFICATIONS
+// ══════════════════════════════════════════════════════════════
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const arr = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i);
+  return arr;
+}
+
+async function updateNotifBtn() {
+  const btn = document.getElementById('notif-btn');
+  if (!btn) return;
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      btn.style.opacity = '.4'; btn.title = 'Not supported on this browser'; return;
+    }
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (sub && Notification.permission === 'granted') {
+      btn.style.background = 'var(--green-dim)'; btn.style.borderColor = 'rgba(16,185,129,.4)';
+      btn.title = 'Notifications ON — tap to disable';
+    } else {
+      btn.style.background = ''; btn.style.borderColor = '';
+      btn.title = 'Enable task notifications';
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function enableTaskNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showToast('Push notifications are not supported on this browser/device', 'error');
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+
+    // Already subscribed → treat tap as a way to turn OFF
+    if (sub && Notification.permission === 'granted') {
+      const subJson = sub.toJSON();
+      await _deleteSupa('push_subscriptions', btoa(subJson.endpoint).slice(0,64));
+      await sub.unsubscribe();
+      showToast('🔕 Notifications turned off on this device', 'success');
+      updateNotifBtn();
+      return;
+    }
+
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      showToast('Notification permission denied', 'error');
+      return;
+    }
+
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    const subJson = sub.toJSON();
+    const row = {
+      id: btoa(subJson.endpoint).slice(0,64),
+      endpoint: subJson.endpoint,
+      p256dh: subJson.keys.p256dh,
+      auth: subJson.keys.auth,
+      created_at: new Date().toISOString()
+    };
+    const { error } = await _supa.from('push_subscriptions').upsert(row);
+    if (error) {
+      showToast('Could not save subscription: ' + (error.message||'unknown error'), 'error');
+      return;
+    }
+    showToast('🔔 Notifications enabled on this device!', 'success');
+    updateNotifBtn();
+  } catch (e) {
+    console.error('Push subscribe error:', e);
+    showToast('Could not enable notifications: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // EXPORT LEADS
 // ══════════════════════════════════════════════════════════════
 function exportLeads(){
@@ -3667,6 +3756,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   goTo('dashboard');
+
+  // ── Silently re-register service worker if notifications were already enabled ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
 
   // ── Cloud sync: upload local data first, then pull everything from cloud ──
   syncFromSupabase().catch(e => {
