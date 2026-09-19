@@ -35,7 +35,7 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || './', taskId: data.taskId || null },
     actions: hasTask ? [
       { action: 'done',   title: '✅ Mark Done' },
-      { action: 'snooze', title: '⏰ Snooze 1 Day' }
+      { action: 'snooze', title: '⏰ Snooze' }
     ] : []
   };
 
@@ -57,25 +57,9 @@ async function markTaskDoneFromSW(taskId) {
   } catch (e) { console.error('SW markTaskDone failed', e); }
 }
 
-async function snoozeTaskFromSW(taskId) {
-  try {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dueDate = tomorrow.toISOString().slice(0, 10);
-    await fetch(`${SUPA_URL}/rest/v1/tasks?id=eq.${taskId}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPA_KEY,
-        'Authorization': `Bearer ${SUPA_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ due_date: dueDate, last_notified_date: null, updated_at: new Date().toISOString() })
-    });
-  } catch (e) { console.error('SW snoozeTask failed', e); }
-}
-
-// ── Handle taps: action buttons act directly, a plain tap opens/focuses the app ──
+// ── Handle taps: "Done" acts directly; "Snooze" opens the app to a
+//    popup where the user types the exact number of minutes; a plain
+//    tap just opens/focuses the app ──
 self.addEventListener('notificationclick', (event) => {
   const taskId = event.notification.data && event.notification.data.taskId;
   const targetUrl = (event.notification.data && event.notification.data.url) || './';
@@ -85,9 +69,22 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(markTaskDoneFromSW(taskId));
     return;
   }
+
   if (event.action === 'snooze' && taskId) {
     event.notification.close();
-    event.waitUntil(snoozeTaskFromSW(taskId));
+    const snoozeUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'snoozeTask=' + encodeURIComponent(taskId);
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
+        for (const client of clientList) {
+          if ('focus' in client) {
+            await client.focus();
+            if ('navigate' in client) { try { await client.navigate(snoozeUrl); } catch (e) {} }
+            return;
+          }
+        }
+        if (self.clients.openWindow) return self.clients.openWindow(snoozeUrl);
+      })
+    );
     return;
   }
 
