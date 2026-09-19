@@ -1016,8 +1016,9 @@ async function _pushTask(t) {
   _setSyncStatus('syncing','Syncing…');
   const row = {
     id: t.id, title: t.title||'', priority: t.priority||'Normal',
-    due_date: t.dueDate||null, notes: t.notes||'',
-    completed: !!t.completed,
+    due_date: t.dueDate||null, due_time: t.dueTime||null, notes: t.notes||'',
+    completed: !!t.completed, notified: !!t.notified,
+    repeat: t.repeat||'None', lead_id: t.leadId||null,
     created_at: t.createdAt, updated_at: t.updatedAt
   };
   const { error } = await _supa.from('tasks').upsert(row);
@@ -1192,7 +1193,9 @@ async function syncFromSupabase() {
     if (tasksData && tasksData.length) {
       DB.tasks = tasksData.map(r=>({
         id:r.id, title:r.title, priority:r.priority||'Normal',
-        dueDate:r.due_date, notes:r.notes, completed: !!r.completed,
+        dueDate:r.due_date, dueTime:r.due_time||'', notes:r.notes, completed: !!r.completed,
+        notified: !!r.notified,
+        repeat:r.repeat||'None', leadId:r.lead_id||null,
         createdAt:r.created_at, updatedAt:r.updated_at
       }));
     }
@@ -1951,12 +1954,35 @@ function openLeadForm(id) {
         placeholder="Product interest, budget discussed, site details..."
         oninput="checkFollowupRequired()">${esc(l.notes||'')}</textarea>
     </div>
+    ${l.id ? renderLinkedTasksSection(l.id) : ''}
   `;
 
   showModal(_editingLead?'Edit Lead':'New Lead', body,
     `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
      <button class="btn btn-primary" style="flex:2" onclick="saveLead()">💾 Save Lead</button>`
   );
+}
+
+function renderLinkedTasksSection(leadId){
+  const linked = DB.tasks.filter(t=>t.leadId===leadId);
+  if (!linked.length) {
+    return `<div class="form-group">
+      <label class="form-label">🔗 Linked Tasks</label>
+      <div style="font-size:12px;color:var(--text3)">No tasks linked to this lead yet. Create one from the Tasks tab and choose this lead under "Link to Lead."</div>
+    </div>`;
+  }
+  const sorted = typeof sortTasks==='function' ? sortTasks(linked) : linked;
+  return `<div class="form-group">
+    <label class="form-label">🔗 Linked Tasks (${linked.length})</label>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${sorted.map(t=>`
+        <div style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 10px">
+          <span style="font-size:14px">${t.completed?'✅':'⬜'}</span>
+          <div style="flex:1;min-width:0;font-size:12px;${t.completed?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.title)}</div>
+          <span class="priority-badge priority-${t.priority}" style="font-size:9px">${(typeof PRIORITY_ICON!=='undefined'&&PRIORITY_ICON[t.priority])||''}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
 }
 
 function selectCat(key){
@@ -3447,6 +3473,25 @@ function sortTasks(tasks){
   });
 }
 
+function leadChipHtml(leadId){
+  if (!leadId) return '';
+  const ld = DB.leads.find(l=>l.id===leadId);
+  if (!ld) return '';
+  return `<span class="priority-badge" style="background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.3);cursor:pointer" onclick="event.stopPropagation();openLeadForm('${leadId}')">🔗 ${esc(ld.name||ld.company||'Lead')}</span>`;
+}
+function repeatBadgeHtml(repeat){
+  if (!repeat || repeat==='None') return '';
+  return `<span class="priority-badge" style="background:var(--card2);color:var(--text2);border:1px solid var(--border)">🔁 ${repeat}</span>`;
+}
+
+function fmtTime12(hhmm){
+  if (!hhmm) return '';
+  const [h,m] = hhmm.split(':').map(Number);
+  const period = h>=12 ? 'PM' : 'AM';
+  const h12 = ((h+11)%12)+1;
+  return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+}
+
 function taskCardHtml(t, today){
   const overdue = t.dueDate && t.dueDate < today && !t.completed;
   return `<div class="task-card ${t.completed?'completed':''}">
@@ -3457,7 +3502,9 @@ function taskCardHtml(t, today){
         <div class="task-title ${t.completed?'done':''}">${esc(t.title)}</div>
         <div class="task-meta">
           <span class="priority-badge priority-${t.priority}">${PRIORITY_ICON[t.priority]||'🔵'} ${t.priority}</span>
-          ${t.dueDate?`<span class="task-due ${overdue?'overdue':''}">📅 ${fmtDate(t.dueDate)}${overdue?' · Overdue':''}</span>`:''}
+          ${t.dueDate?`<span class="task-due ${overdue?'overdue':''}">📅 ${fmtDate(t.dueDate)}${t.dueTime?' · '+fmtTime12(t.dueTime):''}${overdue?' · Overdue':''}</span>`:''}
+          ${repeatBadgeHtml(t.repeat)}
+          ${leadChipHtml(t.leadId)}
         </div>
         ${t.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.4">${esc(t.notes)}</div>`:''}
       </div>
@@ -3532,8 +3579,27 @@ function renderDashboardTasks(){
 function toggleTaskComplete(id){
   const t = DB.tasks.find(x=>x.id===id);
   if (!t) return;
+  const now = new Date().toISOString();
+
+  // Recurring task being completed → roll forward to the next due date instead
+  if (!t.completed && t.repeat && t.repeat !== 'None') {
+    const base = t.dueDate ? new Date(t.dueDate+'T00:00:00') : new Date();
+    const addDays = t.repeat === 'Weekly' ? 7 : 1;
+    base.setDate(base.getDate() + addDays);
+    t.dueDate = base.toISOString().slice(0,10);
+    t.completed = false;
+    t.notified = false;
+    t.updatedAt = now;
+    DB.save();
+    _pushTask(t);
+    renderTasks();
+    if (_currentPage==='dashboard') renderDashboardTasks();
+    showToast(`🔁 Repeats! Next due ${fmtDate(t.dueDate)}`, 'success');
+    return;
+  }
+
   t.completed  = !t.completed;
-  t.updatedAt  = new Date().toISOString();
+  t.updatedAt  = now;
   DB.save();
   _pushTask(t);
   renderTasks();
@@ -3566,7 +3632,7 @@ function selectTaskPriority(p){
 
 function openTaskForm(id){
   _editingTask = id ? DB.tasks.find(t=>t.id===id) : null;
-  const t = _editingTask || { title:'', priority:'Important', dueDate:'', notes:'' };
+  const t = _editingTask || { title:'', priority:'Important', dueDate:'', dueTime:'', notes:'', repeat:'None', leadId:null, notified:false };
   _tkSelectedPriority = t.priority || 'Important';
 
   const body = `
@@ -3589,6 +3655,25 @@ function openTaskForm(id){
       <input type="date" class="form-input" id="tk-due" value="${t.dueDate||''}">
     </div>
     <div class="form-group">
+      <label class="form-label">Due Time (optional — sets exact reminder time)</label>
+      <input type="time" class="form-input" id="tk-due-time" value="${t.dueTime||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Repeat</label>
+      <select class="form-input form-select" id="tk-repeat">
+        <option value="None"${(t.repeat||'None')==='None'?' selected':''}>Does not repeat</option>
+        <option value="Daily"${t.repeat==='Daily'?' selected':''}>🔁 Daily</option>
+        <option value="Weekly"${t.repeat==='Weekly'?' selected':''}>🔁 Weekly</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link to Lead (optional)</label>
+      <select class="form-input form-select" id="tk-lead">
+        <option value="">— No lead linked —</option>
+        ${DB.leads.map(l=>`<option value="${l.id}"${t.leadId===l.id?' selected':''}>${esc(l.name||l.company||'Unnamed')}${l.company?' · '+esc(l.company):''}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Notes (optional)</label>
       <textarea class="form-input" id="tk-notes" rows="3" placeholder="Any details...">${esc(t.notes||'')}</textarea>
     </div>
@@ -3604,16 +3689,22 @@ function saveTask(){
   const title = document.getElementById('tk-title').value.trim();
   if (!title) { showToast('Please enter a task title', 'error'); return; }
   const dueDate  = document.getElementById('tk-due').value || '';
+  const dueTime  = document.getElementById('tk-due-time').value || '';
   const notes    = document.getElementById('tk-notes').value.trim();
   const priority = _tkSelectedPriority || 'Important';
+  const repeat   = document.getElementById('tk-repeat').value || 'None';
+  const leadId   = document.getElementById('tk-lead').value || null;
   const now = new Date().toISOString();
 
   if (_editingTask) {
     const t = _editingTask;
-    t.title = title; t.priority = priority; t.dueDate = dueDate; t.notes = notes; t.updatedAt = now;
+    const scheduleChanged = (t.dueDate||'') !== dueDate || (t.dueTime||'') !== dueTime;
+    t.title = title; t.priority = priority; t.dueDate = dueDate; t.dueTime = dueTime; t.notes = notes;
+    t.repeat = repeat; t.leadId = leadId; t.updatedAt = now;
+    if (scheduleChanged) t.notified = false; // re-arm the reminder for the new time
     DB.updateTask(t);
   } else {
-    DB.addTask({ id: uid(), title, priority, dueDate, notes, completed:false, createdAt: now, updatedAt: now });
+    DB.addTask({ id: uid(), title, priority, dueDate, dueTime, notes, repeat, leadId, completed:false, notified:false, createdAt: now, updatedAt: now });
   }
   closeModal();
   renderTasks();
