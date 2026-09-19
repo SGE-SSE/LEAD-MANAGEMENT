@@ -974,7 +974,7 @@ async function _pushLead(l, op='upsert') {
     address: l.address||'',
     lat: l.lat||null, lng: l.lng||null, accuracy: l.accuracy||null,
     next_follow_up: l.nextFollowUp||null,
-    followup_notified: !!l.followupNotified,
+    followup_last_notified_date: l.followupLastNotifiedDate||null,
     notes: l.notes||'',
     created_at: l.createdAt, updated_at: l.updatedAt
   };
@@ -1018,7 +1018,8 @@ async function _pushTask(t) {
   const row = {
     id: t.id, title: t.title||'', priority: t.priority||'Normal',
     due_date: t.dueDate||null, due_time: t.dueTime||null, notes: t.notes||'',
-    completed: !!t.completed, notified: !!t.notified,
+    completed: !!t.completed,
+    last_notified_date: t.lastNotifiedDate||null,
     repeat: t.repeat||'None', lead_id: t.leadId||null,
     created_at: t.createdAt, updated_at: t.updatedAt
   };
@@ -1178,7 +1179,7 @@ async function syncFromSupabase() {
       id:r.id, name:r.name, company:r.company, phone:r.phone, email:r.email,
       status:r.status||'New', category:r.category, leadType:r.lead_type, source:r.source,
       address:r.address, lat:r.lat, lng:r.lng, accuracy:r.accuracy,
-      nextFollowUp:r.next_follow_up, followupNotified: !!r.followup_notified, notes:r.notes,
+      nextFollowUp:r.next_follow_up, followupLastNotifiedDate: r.followup_last_notified_date||null, notes:r.notes,
       createdAt:r.created_at, updatedAt:r.updated_at
     }));
     DB.calls = callsData.map(r=>({
@@ -1195,7 +1196,7 @@ async function syncFromSupabase() {
       DB.tasks = tasksData.map(r=>({
         id:r.id, title:r.title, priority:r.priority||'Normal',
         dueDate:r.due_date, dueTime:r.due_time||'', notes:r.notes, completed: !!r.completed,
-        notified: !!r.notified,
+        lastNotifiedDate: r.last_notified_date||null,
         repeat:r.repeat||'None', leadId:r.lead_id||null,
         createdAt:r.created_at, updatedAt:r.updated_at
       }));
@@ -2120,7 +2121,7 @@ function saveLead() {
     status:       document.getElementById('lf-status').value,
     source:       document.getElementById('lf-source').value,
     nextFollowUp: newFollowUp,
-    followupNotified: followupChanged ? false : (_editingLead?.followupNotified||false),
+    followupLastNotifiedDate: followupChanged ? null : (_editingLead?.followupLastNotifiedDate||null),
     address:      addrField || _locData.address || '',
     lat:          _locData.lat  || (_editingLead?.lat||''),
     lng:          _locData.lng  || (_editingLead?.lng||''),
@@ -3592,7 +3593,7 @@ function toggleTaskComplete(id){
     base.setDate(base.getDate() + addDays);
     t.dueDate = base.toISOString().slice(0,10);
     t.completed = false;
-    t.notified = false;
+    t.lastNotifiedDate = null;
     t.updatedAt = now;
     DB.save();
     _pushTask(t);
@@ -3705,10 +3706,10 @@ function saveTask(){
     const scheduleChanged = (t.dueDate||'') !== dueDate || (t.dueTime||'') !== dueTime;
     t.title = title; t.priority = priority; t.dueDate = dueDate; t.dueTime = dueTime; t.notes = notes;
     t.repeat = repeat; t.leadId = leadId; t.updatedAt = now;
-    if (scheduleChanged) t.notified = false; // re-arm the reminder for the new time
+    if (scheduleChanged) t.lastNotifiedDate = null; // re-arm the reminder for the new time
     DB.updateTask(t);
   } else {
-    DB.addTask({ id: uid(), title, priority, dueDate, dueTime, notes, repeat, leadId, completed:false, notified:false, createdAt: now, updatedAt: now });
+    DB.addTask({ id: uid(), title, priority, dueDate, dueTime, notes, repeat, leadId, completed:false, lastNotifiedDate:null, createdAt: now, updatedAt: now });
   }
   closeModal();
   renderTasks();
