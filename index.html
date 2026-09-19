@@ -1064,7 +1064,13 @@ async function supaFetch(path, method='GET', body=null) {
   return data;
 }
 
+let _lastSyncAt = 0;
+let _syncInFlight = false;
+
 async function syncFromSupabase() {
+  if (_syncInFlight) return;   // avoid overlapping syncs
+  _syncInFlight = true;
+  _lastSyncAt = Date.now();
   _setSyncStatus('syncing','Connecting...');
   try {
 
@@ -1213,10 +1219,13 @@ async function syncFromSupabase() {
     if(_currentPage==='timeline')  renderTimeline();
     if(_currentPage==='tasks')     renderTasks();
 
+    _syncInFlight = false;
+
   } catch(e) {
     const msg = e.message || String(e);
     console.error('Supabase sync failed:', msg);
     _setSyncStatus('error', msg.substring(0,90));
+    _syncInFlight = false;
     setTimeout(() => syncFromSupabase(), 3*60*1000);
   }
 }
@@ -1226,6 +1235,19 @@ function _showCORSBanner(){}       // disabled — silent fallback instead
 
 // Legacy – kept for compatibility, now a no-op (syncFromSupabase handles everything)
 async function _pushAllLocal() { return syncFromSupabase(); }
+
+// ── Auto re-sync when the app is reopened/resumed (not just on first load) ──
+const SYNC_THROTTLE_MS = 20 * 1000; // don't re-sync more than once per 20s
+function _maybeAutoSync(){
+  if (Date.now() - _lastSyncAt > SYNC_THROTTLE_MS) {
+    syncFromSupabase().catch(()=>{});
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _maybeAutoSync();
+});
+window.addEventListener('focus', _maybeAutoSync);
+window.addEventListener('pageshow', (e) => { if (e.persisted) _maybeAutoSync(); });
 
 DB.load();
 
