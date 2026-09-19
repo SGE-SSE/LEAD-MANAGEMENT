@@ -3690,6 +3690,60 @@ function openTaskForm(id){
   showModal(_editingTask?'Edit Task':'New Task', body, footer);
 }
 
+// ══════════════════════════════════════════════════════════════
+// SNOOZE — opened via the notification's "Snooze" action, lets the
+// user type an exact number of minutes instead of a fixed preset
+// ══════════════════════════════════════════════════════════════
+function checkSnoozeDeepLink(){
+  const params = new URLSearchParams(window.location.search);
+  const taskId = params.get('snoozeTask');
+  if (!taskId) return;
+  const t = DB.tasks.find(x=>x.id===taskId);
+  if (!t) return; // task not loaded locally yet — will retry after sync completes
+  // Clear the param now that we've found the task and are showing the modal
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+  openSnoozeModal(taskId);
+}
+
+function openSnoozeModal(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  if (!t) { showToast('Task not found — try syncing first', 'error'); return; }
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Snooze "${esc(t.title)}" for how long?</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        ${[5,15,30,60].map(m=>`<button type="button" class="btn btn-ghost btn-sm" style="flex:1" onclick="document.getElementById('snooze-mins').value=${m}">${m<60?m+'m':'1h'}</button>`).join('')}
+      </div>
+      <input type="number" min="1" class="form-input" id="snooze-mins" placeholder="Minutes" value="30">
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Enter any number of minutes — tap a quick preset above or type your own.</div>
+    </div>
+  `;
+  const footer = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="applySnooze('${taskId}')">⏰ Snooze</button>
+  `;
+  showModal('Snooze Task', body, footer);
+}
+
+function applySnooze(taskId){
+  const mins = parseInt(document.getElementById('snooze-mins').value, 10);
+  if (!mins || mins <= 0) { showToast('Enter a valid number of minutes', 'error'); return; }
+  const t = DB.tasks.find(x=>x.id===taskId);
+  if (!t) { closeModal(); return; }
+  const target = new Date(Date.now() + mins*60000);
+  const pad = n => String(n).padStart(2,'0');
+  t.dueDate = `${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}`;
+  t.dueTime = `${pad(target.getHours())}:${pad(target.getMinutes())}`;
+  t.lastNotifiedDate = null; // re-arm so the reminder fires again at the new time
+  t.updatedAt = new Date().toISOString();
+  DB.save();
+  _pushTask(t);
+  closeModal();
+  renderTasks();
+  if (_currentPage==='dashboard') renderDashboardTasks();
+  showToast(`⏰ Snoozed ${mins} min — now due ${fmtDate(t.dueDate)} · ${fmtTime12(t.dueTime)}`, 'success');
+}
+
 function saveTask(){
   const title = document.getElementById('tk-title').value.trim();
   if (!title) { showToast('Please enter a task title', 'error'); return; }
@@ -3880,8 +3934,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 
+  // ── If opened from a "Snooze" notification action, show the snooze popup ──
+  checkSnoozeDeepLink();
+
   // ── Cloud sync: upload local data first, then pull everything from cloud ──
-  syncFromSupabase().catch(e => {
+  syncFromSupabase().then(() => {
+    checkSnoozeDeepLink(); // retry in case the task wasn't in local storage yet
+  }).catch(e => {
     _setSyncStatus('error', 'Offline – tap ↻ to retry');
     console.warn('Supabase unavailable, running offline:', e);
   });
