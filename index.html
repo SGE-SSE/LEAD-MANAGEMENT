@@ -974,6 +974,7 @@ async function _pushLead(l, op='upsert') {
     address: l.address||'',
     lat: l.lat||null, lng: l.lng||null, accuracy: l.accuracy||null,
     next_follow_up: l.nextFollowUp||null,
+    followup_notified: !!l.followupNotified,
     notes: l.notes||'',
     created_at: l.createdAt, updated_at: l.updatedAt
   };
@@ -1177,7 +1178,7 @@ async function syncFromSupabase() {
       id:r.id, name:r.name, company:r.company, phone:r.phone, email:r.email,
       status:r.status||'New', category:r.category, leadType:r.lead_type, source:r.source,
       address:r.address, lat:r.lat, lng:r.lng, accuracy:r.accuracy,
-      nextFollowUp:r.next_follow_up, notes:r.notes,
+      nextFollowUp:r.next_follow_up, followupNotified: !!r.followup_notified, notes:r.notes,
       createdAt:r.created_at, updatedAt:r.updated_at
     }));
     DB.calls = callsData.map(r=>({
@@ -2106,6 +2107,8 @@ function saveLead() {
 
   const addrField = document.getElementById('lf-addr').value.trim();
   const isNew = !_editingLead;
+  const newFollowUp = document.getElementById('lf-followup').value;
+  const followupChanged = isNew || ((_editingLead.nextFollowUp||'') !== newFollowUp);
   const lead = {
     id:           _editingLead ? _editingLead.id : uid(),
     name,
@@ -2116,7 +2119,8 @@ function saveLead() {
     leadType:     document.getElementById('lf-leadtype').value,
     status:       document.getElementById('lf-status').value,
     source:       document.getElementById('lf-source').value,
-    nextFollowUp: document.getElementById('lf-followup').value,
+    nextFollowUp: newFollowUp,
+    followupNotified: followupChanged ? false : (_editingLead?.followupNotified||false),
     address:      addrField || _locData.address || '',
     lat:          _locData.lat  || (_editingLead?.lat||''),
     lng:          _locData.lng  || (_editingLead?.lng||''),
