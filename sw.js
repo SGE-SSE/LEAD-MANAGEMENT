@@ -70,7 +70,7 @@ async function snoozeTaskFromSW(taskId) {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ due_date: dueDate, notified: false, updated_at: new Date().toISOString() })
+      body: JSON.stringify({ due_date: dueDate, last_notified_date: null, updated_at: new Date().toISOString() })
     });
   } catch (e) { console.error('SW snoozeTask failed', e); }
 }
