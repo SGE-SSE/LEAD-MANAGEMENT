@@ -125,8 +125,8 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
   background:none;border:none;cursor:pointer;color:var(--text3);transition:color .15s;padding:8px 0}
 .nav-btn.active{color:var(--primary)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
-.nav-btn span{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:16.6667%;transition:left .2s cubic-bezier(.4,0,.2,1)}
+.nav-btn span{font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.nav-indicator{position:absolute;top:-1px;height:2px;background:var(--primary);border-radius:2px;width:14.2857%;transition:left .2s cubic-bezier(.4,0,.2,1)}
 
 /* ── Page Header ── */
 .ph{position:sticky;top:0;z-index:50;background:rgba(6,10,19,.97);backdrop-filter:blur(20px);
@@ -451,6 +451,28 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
 .tl-date-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px 8px;font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
 .tl-date-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
 
+/* ════ CONTACTS & LOCATIONS STYLES ════ */
+.cl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.cl-card.imp{border-color:rgba(245,158,11,.45)}
+.cl-top{display:flex;gap:12px;align-items:flex-start}
+.cl-avatar{width:42px;height:42px;border-radius:50%;background:var(--pri-dim);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;flex-shrink:0}
+.cl-avatar.loc{border-radius:12px;font-size:20px}
+.cl-name{font-size:15px;font-weight:800;line-height:1.3}
+.cl-sub{font-size:12px;color:var(--text2);margin-top:2px;font-weight:600}
+.cl-line{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.4;word-break:break-word}
+.cl-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cl-act{flex:1;min-width:64px;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 6px;border-radius:10px;background:var(--card2);border:1px solid var(--border);
+  color:var(--text);font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;font-family:'Outfit',sans-serif}
+.cl-act:active{border-color:var(--primary)}
+.cl-star{background:none;border:none;font-size:20px;cursor:pointer;padding:0 2px;line-height:1;filter:grayscale(1);opacity:.45}
+.cl-star.on{filter:none;opacity:1}
+.cl-tabs{display:flex;gap:8px;margin-top:10px}
+.cl-tab{flex:1;text-align:center;padding:9px 6px;border-radius:12px;background:var(--card2);
+  border:1.5px solid var(--border);font-size:13px;font-weight:800;color:var(--text2);cursor:pointer}
+.cl-tab.active{background:var(--pri-dim);border-color:var(--primary);color:var(--primary)}
 /* ════ TASKS STYLES ════ */
 .task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s;cursor:pointer}
@@ -784,6 +806,28 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <div style="padding:12px 16px 90px" id="tasks-list"></div>
   </div>
 
+  <!-- ════════ CONTACTS & LOCATIONS PAGE ════════ -->
+  <div class="page" id="page-contacts">
+    <div class="ph">
+      <div class="ph-row">
+        <div>
+          <div class="ph-title">📇 Contacts &amp; Places</div>
+          <div class="ph-sub" id="cl-sub">Important contacts &amp; locations</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="cl-add-btn" onclick="fabAction()">+ Add</button>
+      </div>
+      <div class="cl-tabs">
+        <div class="cl-tab active" id="cl-tab-contacts"  onclick="switchCLTab('contacts')">👤 Contacts</div>
+        <div class="cl-tab"        id="cl-tab-locations" onclick="switchCLTab('locations')">📍 Locations</div>
+      </div>
+      <div style="margin-top:10px">
+        <input class="form-input" id="cl-search" placeholder="Search name, phone, address…" oninput="_clSearch=this.value;renderContacts()" style="padding:10px 14px">
+      </div>
+      <div class="chips" id="cl-cat-chips" style="margin-top:8px"></div>
+    </div>
+    <div style="padding:12px 16px 90px" id="cl-list"></div>
+  </div>
+
   <!-- ════════ REMINDERS PAGE ════════ -->
   <div class="page" id="page-reminders">
     <div class="ph">
@@ -824,6 +868,10 @@ input,select,textarea,button{font-family:'Outfit',sans-serif}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
     <span>Tasks</span>
     <span class="rm-nav-badge" id="task-nav-badge" style="display:none">0</span>
+  </button>
+  <button class="nav-btn" id="nav-contacts" onclick="goTo('contacts')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h14a2 2 0 012 2v12a2 2 0 01-2 2H4z"/><circle cx="11" cy="10" r="2.5"/><path d="M6.5 17c.6-2 2.2-3 4.5-3s3.9 1 4.5 3"/><path d="M20 8h2M20 12h2M20 16h2"/></svg>
+    <span>Contacts</span>
   </button>
 </nav>
 
@@ -876,7 +924,7 @@ function _setSyncStatus(state, msg) {
 // DATA LAYER  —  localStorage (fast) + Supabase (cloud backup)
 // ══════════════════════════════════════════════════════════════
 const DB = {
-  leads: [], calls: [], checkins: [], tasks: [],
+  leads: [], calls: [], checkins: [], tasks: [], contacts: [], locations: [],
 
   // ── Load from localStorage first (instant) ──
   load() {
@@ -884,6 +932,8 @@ const DB = {
     try { this.calls    = JSON.parse(localStorage.getItem('cratio_calls')   ||'[]'); } catch{ this.calls=[];    }
     try { this.checkins = JSON.parse(localStorage.getItem('cratio_checkins')||'[]'); } catch{ this.checkins=[]; }
     try { this.tasks    = JSON.parse(localStorage.getItem('cratio_tasks')   ||'[]'); } catch{ this.tasks=[];    }
+    try { this.contacts  = JSON.parse(localStorage.getItem('cratio_contacts') ||'[]'); } catch{ this.contacts=[];  }
+    try { this.locations = JSON.parse(localStorage.getItem('cratio_locations')||'[]'); } catch{ this.locations=[]; }
     // Migrate old status names
     const oldToNew = {'Interested':'Contacted','Negotiating':'Quoted','Price Agreed':'Agreed'};
     let changed = false;
@@ -897,6 +947,8 @@ const DB = {
     localStorage.setItem('cratio_calls',    JSON.stringify(this.calls));
     localStorage.setItem('cratio_checkins', JSON.stringify(this.checkins));
     localStorage.setItem('cratio_tasks',    JSON.stringify(this.tasks));
+    localStorage.setItem('cratio_contacts',  JSON.stringify(this.contacts));
+    localStorage.setItem('cratio_locations', JSON.stringify(this.locations));
   },
 
   // ── Diary localStorage helpers (keyed by date, also synced to Supabase) ──
@@ -958,6 +1010,16 @@ const DB = {
     this._saveLocal();
     _deleteSupa('tasks', id);
   },
+
+  // ──────────────────────────────────────────
+  // CONTACTS & LOCATIONS
+  // ──────────────────────────────────────────
+  addContact(c)    { this.contacts.unshift(c); this._saveLocal(); _pushContact(c); },
+  updateContact(c) { const i=this.contacts.findIndex(x=>x.id===c.id); if(i>-1){ this.contacts[i]=c; this._saveLocal(); _pushContact(c); } },
+  deleteContact(id){ this.contacts=this.contacts.filter(x=>x.id!==id); this._saveLocal(); _deleteSupa('contacts', id); },
+  addLocation(l)    { this.locations.unshift(l); this._saveLocal(); _pushLocation(l); },
+  updateLocation(l) { const i=this.locations.findIndex(x=>x.id===l.id); if(i>-1){ this.locations[i]=l; this._saveLocal(); _pushLocation(l); } },
+  deleteLocation(id){ this.locations=this.locations.filter(x=>x.id!==id); this._saveLocal(); _deleteSupa('locations', id); },
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -1028,6 +1090,29 @@ async function _pushTask(t) {
   else { _setSyncStatus('online','Synced ✓'); }
 }
 
+function _contactRow(c){
+  return { id:c.id, name:c.name||'', phone:c.phone||'', phone2:c.phone2||'', email:c.email||'',
+    company:c.company||'', role:c.role||'', category:c.category||'Other', important: !!c.important,
+    notes:c.notes||'', created_at:c.createdAt, updated_at:c.updatedAt };
+}
+function _locationRow(l){
+  return { id:l.id, name:l.name||'', address:l.address||'', category:l.category||'Other',
+    lat:l.lat||null, lng:l.lng||null, accuracy:l.accuracy||null, contact_id:l.contactId||null,
+    important: !!l.important, notes:l.notes||'', created_at:l.createdAt, updated_at:l.updatedAt };
+}
+async function _pushContact(c) {
+  _setSyncStatus('syncing','Syncing…');
+  const { error } = await _supa.from('contacts').upsert(_contactRow(c));
+  if (error) { console.error('Contact sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+async function _pushLocation(l) {
+  _setSyncStatus('syncing','Syncing…');
+  const { error } = await _supa.from('locations').upsert(_locationRow(l));
+  if (error) { console.error('Location sync error:', error); _setSyncStatus('error','Sync error'); }
+  else { _setSyncStatus('online','Synced ✓'); }
+}
+
 async function _deleteSupa(table, id) {
   const { error } = await _supa.from(table).delete().eq('id', id);
   if (error) console.error('Delete sync error:', error);
@@ -1078,11 +1163,13 @@ async function syncFromSupabase() {
   try {
 
     // ── STEP 1: Pull current cloud counts to decide who wins ──
-    const [cloudLeads, cloudCalls, cloudCheckins, cloudTasks] = await Promise.all([
+    const [cloudLeads, cloudCalls, cloudCheckins, cloudTasks, cloudContacts, cloudLocations] = await Promise.all([
       supaFetch('leads?select=id'),
       supaFetch('calls?select=id'),
       supaFetch('checkins?select=id'),
       supaFetch('tasks?select=id').catch(()=>[]),
+      supaFetch('contacts?select=id').catch(()=>[]),
+      supaFetch('locations?select=id').catch(()=>[]),
     ]);
 
     const cloudLeadIds    = new Set(cloudLeads.map(r=>r.id));
@@ -1096,6 +1183,10 @@ async function syncFromSupabase() {
     const localCalls    = DB.calls.filter(c => !cloudCallIds.has(c.id));
     const localCheckins = DB.checkins.filter(ci => !cloudCheckinIds.has(ci.id));
     const localTasks    = DB.tasks.filter(t => !cloudTaskIds.has(t.id));
+    const cloudContactIds  = new Set((cloudContacts||[]).map(r=>r.id));
+    const cloudLocationIds = new Set((cloudLocations||[]).map(r=>r.id));
+    const localContacts  = DB.contacts.filter(c => !cloudContactIds.has(c.id));
+    const localLocations = DB.locations.filter(l => !cloudLocationIds.has(l.id));
 
     if (localLeads.length) {
       const rows = localLeads.map(l=>({
@@ -1155,6 +1246,19 @@ async function syncFromSupabase() {
       }
     }
 
+    if (localContacts.length) {
+      const rows = localContacts.map(_contactRow);
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('contacts','POST',rows.slice(i,i+50)).catch(e=>console.warn('contact push:',e.message));
+      }
+    }
+    if (localLocations.length) {
+      const rows = localLocations.map(_locationRow);
+      for(let i=0;i<rows.length;i+=50){
+        await supaFetch('locations','POST',rows.slice(i,i+50)).catch(e=>console.warn('location push:',e.message));
+      }
+    }
+
     // Push diary entries that cloud doesn't have
     const diaryKeys = Object.keys(localStorage).filter(k=>k.startsWith('cratio_diary_'));
     for (const key of diaryKeys) {
@@ -1167,12 +1271,14 @@ async function syncFromSupabase() {
     }
 
     // ── STEP 3: Pull EVERYTHING from Supabase (full authoritative dataset) ──
-    const [leadsData, callsData, checkinsData, diaryData, tasksData] = await Promise.all([
+    const [leadsData, callsData, checkinsData, diaryData, tasksData, contactsData, locationsData] = await Promise.all([
       supaFetch('leads?select=*&order=created_at.desc'),
       supaFetch('calls?select=*&order=called_at.desc'),
       supaFetch('checkins?select=*&order=checked_at.desc'),
       supaFetch('diary?select=*&order=date.desc'),
       supaFetch('tasks?select=*&order=created_at.desc').catch(()=>[]),
+      supaFetch('contacts?select=*&order=created_at.desc').catch(()=>[]),
+      supaFetch('locations?select=*&order=created_at.desc').catch(()=>[]),
     ]);
 
     DB.leads = leadsData.map(r=>({
@@ -1202,6 +1308,21 @@ async function syncFromSupabase() {
       }));
     }
 
+    if (contactsData && contactsData.length) {
+      DB.contacts = contactsData.map(r=>({
+        id:r.id, name:r.name, phone:r.phone||'', phone2:r.phone2||'', email:r.email||'',
+        company:r.company||'', role:r.role||'', category:r.category||'Other', important: !!r.important,
+        notes:r.notes||'', createdAt:r.created_at, updatedAt:r.updated_at
+      }));
+    }
+    if (locationsData && locationsData.length) {
+      DB.locations = locationsData.map(r=>({
+        id:r.id, name:r.name, address:r.address||'', category:r.category||'Other',
+        lat:r.lat, lng:r.lng, accuracy:r.accuracy, contactId:r.contact_id||null,
+        important: !!r.important, notes:r.notes||'', createdAt:r.created_at, updatedAt:r.updated_at
+      }));
+    }
+
     diaryData.forEach(r=>{
       const cloudStops = typeof r.stops==='string' ? JSON.parse(r.stops||'[]') : (r.stops||[]);
       const localStops = DB.getDiaryStops(r.date);
@@ -1223,6 +1344,7 @@ async function syncFromSupabase() {
     if(_currentPage==='diary')     renderDiary();
     if(_currentPage==='timeline')  renderTimeline();
     if(_currentPage==='tasks')     renderTasks();
+    if(_currentPage==='contacts')  renderContacts();
 
     _syncInFlight = false;
 
@@ -1466,13 +1588,15 @@ function closeModal(e) {
   document.body.style.overflow='';
   _editingLead = null;
   _editingTask = null;
+  _editingContact = null;
+  _editingLocation = null;
 }
 
 // ══════════════════════════════════════════════════════════════
 // ROUTER
 // ══════════════════════════════════════════════════════════════
 let _currentPage = 'dashboard';
-const PAGES=['dashboard','leads','reminders','timeline','diary','tasks'];;
+const PAGES=['dashboard','leads','reminders','timeline','diary','tasks','contacts'];
 let _statusFilter = 'All';
 
 function goTo(page) {
@@ -1483,9 +1607,9 @@ function goTo(page) {
   const navEl = document.getElementById('nav-'+page);
   if(navEl) navEl.classList.add('active');
   const idx = PAGES.indexOf(page);
-  if(idx>=0) document.getElementById('nav-indicator').style.left = (idx*(100/6))+'%';
+  if(idx>=0) document.getElementById('nav-indicator').style.left = (idx*(100/7))+'%';
   const fab = document.getElementById('page-fab');
-  fab.style.display=(page==='leads'||page==='tasks')?'flex':'none';
+  fab.style.display=(page==='leads'||page==='tasks'||page==='contacts')?'flex':'none';
   _currentPage = page;
   if (page==='dashboard') renderDashboard();
   if (page==='leads') renderLeads();
@@ -1493,11 +1617,13 @@ function goTo(page) {
   if (page==='reminders') renderReminders();
   if (page==='diary') renderDiary();
   if (page==='tasks') { renderTasks(); updateNotifBtn(); }
+  if (page==='contacts') renderContacts();
 }
 
 function fabAction() {
   if (_currentPage==='leads') openLeadForm();
   if (_currentPage==='tasks') openTaskForm();
+  if (_currentPage==='contacts') { _clTab==='locations' ? openLocationForm() : openContactForm(); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3945,6 +4071,325 @@ document.addEventListener('DOMContentLoaded', ()=>{
     console.warn('Supabase unavailable, running offline:', e);
   });
 });
+
+
+// ══════════════════════════════════════════════════════════════
+// CONTACTS & LOCATIONS  —  manually added important contacts / places
+// ══════════════════════════════════════════════════════════════
+let _clTab = 'contacts';
+let _clSearch = '';
+let _clCat = { contacts:'All', locations:'All' };
+let _editingContact = null;
+let _editingLocation = null;
+let _locGps = { lat:null, lng:null, accuracy:null };
+
+const CONTACT_CATS = { Supplier:'🏭', Client:'🤝', Vendor:'🧰', Employee:'👷', Government:'🏛️', Emergency:'🚨', Family:'🏠', Other:'📌' };
+const LOCATION_CATS = { Office:'🏢', Site:'🏗️', Warehouse:'📦', Supplier:'🏭', Client:'🤝', Home:'🏠', Other:'📍' };
+
+function clTelDigits(p){ return (p||'').replace(/[^\d+]/g,''); }
+function clWaNumber(p){
+  let d = (p||'').replace(/\D/g,'');
+  if (d.length===11 && d.startsWith('0')) d = d.slice(1);
+  if (d.length===10) d = '91'+d;   // default country code: India
+  return d;
+}
+function clInitials(n){
+  const parts = (n||'?').trim().split(/\s+/).slice(0,2);
+  return parts.map(w=>w.charAt(0).toUpperCase()).join('') || '?';
+}
+function clMapsUrl(l){
+  if (l.lat && l.lng) return `https://www.google.com/maps/search/?api=1&query=${l.lat},${l.lng}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address||l.name||'')}`;
+}
+function clDirectionsUrl(l){
+  const dest = (l.lat && l.lng) ? `${l.lat},${l.lng}` : encodeURIComponent(l.address||l.name||'');
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+}
+
+function switchCLTab(tab){
+  _clTab = tab; _clSearch = '';
+  const s = document.getElementById('cl-search'); if (s) s.value = '';
+  renderContacts();
+}
+
+function setCLCat(cat){ _clCat[_clTab] = cat; renderContacts(); }
+
+function toggleCLImportant(kind, id){
+  if (kind==='contact'){
+    const c = DB.contacts.find(x=>x.id===id); if(!c) return;
+    c.important = !c.important; c.updatedAt = new Date().toISOString(); DB.updateContact(c);
+  } else {
+    const l = DB.locations.find(x=>x.id===id); if(!l) return;
+    l.important = !l.important; l.updatedAt = new Date().toISOString(); DB.updateLocation(l);
+  }
+  renderContacts();
+}
+
+function renderContacts(){
+  const listEl = document.getElementById('cl-list');
+  if (!listEl) return;
+  const isC = _clTab==='contacts';
+
+  document.getElementById('cl-tab-contacts').className  = 'cl-tab'+(isC?' active':'');
+  document.getElementById('cl-tab-locations').className = 'cl-tab'+(!isC?' active':'');
+  document.getElementById('cl-add-btn').textContent = isC ? '+ Add Contact' : '+ Add Place';
+  document.getElementById('cl-sub').textContent = isC
+    ? `${DB.contacts.length} contact${DB.contacts.length===1?'':'s'} saved`
+    : `${DB.locations.length} location${DB.locations.length===1?'':'s'} saved`;
+
+  // Category chips
+  const cats = isC ? CONTACT_CATS : LOCATION_CATS;
+  const cur = _clCat[_clTab];
+  document.getElementById('cl-cat-chips').innerHTML =
+    `<div class="chip ${cur==='All'?'active':''}" onclick="setCLCat('All')">All</div>` +
+    `<div class="chip ${cur==='★'?'active':''}" onclick="setCLCat('★')">⭐ Important</div>` +
+    Object.keys(cats).map(k=>`<div class="chip ${cur===k?'active':''}" onclick="setCLCat('${k}')">${cats[k]} ${k}</div>`).join('');
+
+  let items = (isC ? DB.contacts : DB.locations).slice();
+  if (cur==='★') items = items.filter(x=>x.important);
+  else if (cur!=='All') items = items.filter(x=>(x.category||'Other')===cur);
+
+  const q = _clSearch.trim().toLowerCase();
+  if (q){
+    items = items.filter(x=>{
+      const hay = isC
+        ? [x.name,x.phone,x.phone2,x.email,x.company,x.role,x.notes,x.category]
+        : [x.name,x.address,x.notes,x.category];
+      return hay.join(' ').toLowerCase().includes(q);
+    });
+  }
+  items.sort((a,b)=> (b.important?1:0)-(a.important?1:0) || (a.name||'').localeCompare(b.name||''));
+
+  if (!items.length){
+    const none = (DB.contacts.length||DB.locations.length) && (isC?DB.contacts.length:DB.locations.length) && (q||cur!=='All');
+    listEl.innerHTML = `<div class="empty"><div class="empty-icon">${isC?'📇':'📍'}</div>
+      <div class="empty-text">${none?'Nothing matches your filter':(isC?'No contacts yet':'No locations yet')}</div>
+      <div class="empty-sub">${none?'Try a different search or category':(isC?'Tap + Add Contact to save an important number':'Tap + Add Place to save an important location')}</div></div>`;
+    return;
+  }
+  listEl.innerHTML = items.map(x=> isC ? contactCardHtml(x) : locationCardHtml(x)).join('');
+}
+
+function clEditDeleteBtns(kind, id){
+  const open = kind==='contact' ? `openContactForm('${id}')` : `openLocationForm('${id}')`;
+  const del  = kind==='contact' ? `deleteContactAsk('${id}')` : `deleteLocationAsk('${id}')`;
+  return `<div class="task-actions">
+    <button class="btn-icon" style="padding:6px" onclick="event.stopPropagation();${open}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>
+    </button>
+    <button class="btn-icon" style="padding:6px" onclick="event.stopPropagation();${del}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+    </button>
+  </div>`;
+}
+
+function contactCardHtml(c){
+  const icon = CONTACT_CATS[c.category] || '📌';
+  const sub = [c.role, c.company].filter(Boolean).map(esc).join(' · ');
+  const acts = [];
+  if (c.phone)  acts.push(`<a class="cl-act" href="tel:${clTelDigits(c.phone)}">📞 Call</a>`);
+  if (c.phone)  acts.push(`<a class="cl-act" href="https://wa.me/${clWaNumber(c.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>`);
+  if (c.phone2) acts.push(`<a class="cl-act" href="tel:${clTelDigits(c.phone2)}">📱 Alt</a>`);
+  if (c.email)  acts.push(`<a class="cl-act" href="mailto:${esc(c.email)}">✉️ Email</a>`);
+  const linkedLocs = DB.locations.filter(l=>l.contactId===c.id);
+  return `<div class="cl-card ${c.important?'imp':''}">
+    <div class="cl-top">
+      <div class="cl-avatar">${esc(clInitials(c.name))}</div>
+      <div style="flex:1;min-width:0" onclick="openContactForm('${c.id}')">
+        <div class="cl-name">${esc(c.name)}</div>
+        ${sub?`<div class="cl-sub">${sub}</div>`:''}
+        <div class="task-meta"><span class="priority-badge" style="background:var(--card2);color:var(--text2);border:1px solid var(--border)">${icon} ${esc(c.category||'Other')}</span></div>
+        ${c.phone?`<div class="cl-line">📞 ${esc(c.phone)}${c.phone2?' · '+esc(c.phone2):''}</div>`:''}
+        ${c.email?`<div class="cl-line">✉️ ${esc(c.email)}</div>`:''}
+        ${linkedLocs.length?`<div class="cl-line">📍 ${linkedLocs.map(l=>esc(l.name)).join(', ')}</div>`:''}
+        ${c.notes?`<div class="cl-line">${esc(c.notes)}</div>`:''}
+      </div>
+      <button class="cl-star ${c.important?'on':''}" onclick="event.stopPropagation();toggleCLImportant('contact','${c.id}')" title="Mark important">⭐</button>
+      ${clEditDeleteBtns('contact', c.id)}
+    </div>
+    ${acts.length?`<div class="cl-actions">${acts.join('')}</div>`:''}
+  </div>`;
+}
+
+function locationCardHtml(l){
+  const icon = LOCATION_CATS[l.category] || '📍';
+  const ct = l.contactId ? DB.contacts.find(c=>c.id===l.contactId) : null;
+  const acts = [
+    `<a class="cl-act" href="${clDirectionsUrl(l)}" target="_blank" rel="noopener">🧭 Directions</a>`,
+    `<a class="cl-act" href="${clMapsUrl(l)}" target="_blank" rel="noopener">🗺️ Map</a>`
+  ];
+  if (ct && ct.phone) acts.push(`<a class="cl-act" href="tel:${clTelDigits(ct.phone)}">📞 ${esc(ct.name)}</a>`);
+  return `<div class="cl-card ${l.important?'imp':''}">
+    <div class="cl-top">
+      <div class="cl-avatar loc">${icon}</div>
+      <div style="flex:1;min-width:0" onclick="openLocationForm('${l.id}')">
+        <div class="cl-name">${esc(l.name)}</div>
+        <div class="task-meta"><span class="priority-badge" style="background:var(--card2);color:var(--text2);border:1px solid var(--border)">${icon} ${esc(l.category||'Other')}</span>
+          ${(l.lat&&l.lng)?`<span class="priority-badge" style="background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3)">📡 GPS saved</span>`:''}</div>
+        ${l.address?`<div class="cl-line">📍 ${esc(l.address)}</div>`:''}
+        ${ct?`<div class="cl-line">👤 ${esc(ct.name)}${ct.phone?' · '+esc(ct.phone):''}</div>`:''}
+        ${l.notes?`<div class="cl-line">${esc(l.notes)}</div>`:''}
+      </div>
+      <button class="cl-star ${l.important?'on':''}" onclick="event.stopPropagation();toggleCLImportant('location','${l.id}')" title="Mark important">⭐</button>
+      ${clEditDeleteBtns('location', l.id)}
+    </div>
+    <div class="cl-actions">${acts.join('')}</div>
+  </div>`;
+}
+
+// ── Contact form ──
+function openContactForm(id){
+  _editingContact = id ? DB.contacts.find(c=>c.id===id) : null;
+  const c = _editingContact || { name:'', phone:'', phone2:'', email:'', company:'', role:'', category:'Supplier', important:false, notes:'' };
+  const body = `
+    <div class="form-group"><label class="form-label">Name *</label>
+      <input class="form-input" id="ct-name" placeholder="e.g. Ramesh Kumar" value="${esc(c.name)}"></div>
+    <div class="form-group"><label class="form-label">Phone</label>
+      <input type="tel" class="form-input" id="ct-phone" placeholder="e.g. 98765 43210" value="${esc(c.phone)}"></div>
+    <div class="form-group"><label class="form-label">Alternate Phone (optional)</label>
+      <input type="tel" class="form-input" id="ct-phone2" value="${esc(c.phone2)}"></div>
+    <div class="form-group"><label class="form-label">Email (optional)</label>
+      <input type="email" class="form-input" id="ct-email" value="${esc(c.email)}"></div>
+    <div class="form-group"><label class="form-label">Company (optional)</label>
+      <input class="form-input" id="ct-company" value="${esc(c.company)}"></div>
+    <div class="form-group"><label class="form-label">Role / Designation (optional)</label>
+      <input class="form-input" id="ct-role" placeholder="e.g. Site Engineer" value="${esc(c.role)}"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-input form-select" id="ct-cat">
+        ${Object.keys(CONTACT_CATS).map(k=>`<option value="${k}"${(c.category||'Other')===k?' selected':''}>${CONTACT_CATS[k]} ${k}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label class="form-label">⭐ Important</label>
+      <select class="form-input form-select" id="ct-imp">
+        <option value="0"${!c.important?' selected':''}>Normal</option>
+        <option value="1"${c.important?' selected':''}>⭐ Important (pinned to top)</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="ct-notes" rows="3" placeholder="Any details...">${esc(c.notes||'')}</textarea></div>`;
+  const footer = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveContact()">${_editingContact?'Update Contact':'Save Contact'}</button>`;
+  showModal(_editingContact?'Edit Contact':'New Contact', body, footer);
+}
+
+function saveContact(){
+  const name = document.getElementById('ct-name').value.trim();
+  if (!name){ showToast('Please enter a name', 'error'); return; }
+  const f = id => document.getElementById(id).value.trim();
+  const now = new Date().toISOString();
+  const data = { name, phone:f('ct-phone'), phone2:f('ct-phone2'), email:f('ct-email'), company:f('ct-company'),
+    role:f('ct-role'), category:document.getElementById('ct-cat').value, important:document.getElementById('ct-imp').value==='1',
+    notes:f('ct-notes') };
+  const wasEdit = !!_editingContact;
+  if (wasEdit){
+    Object.assign(_editingContact, data, { updatedAt: now });
+    DB.updateContact(_editingContact);
+  } else {
+    DB.addContact({ id: uid(), ...data, createdAt: now, updatedAt: now });
+  }
+  closeModal();
+  renderContacts();
+  showToast(wasEdit ? '✅ Contact updated!' : '✅ Contact saved!', 'success');
+}
+
+function deleteContactAsk(id){
+  const c = DB.contacts.find(x=>x.id===id); if(!c) return;
+  showModal('Delete Contact?',
+    `<div style="font-size:14px;color:var(--text2);line-height:1.5">Delete <b>${esc(c.name)}</b>? This cannot be undone.</div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-danger" onclick="confirmDeleteContact('${id}')">Delete</button>`);
+}
+function confirmDeleteContact(id){
+  DB.locations.forEach(l=>{ if(l.contactId===id){ l.contactId=null; l.updatedAt=new Date().toISOString(); _pushLocation(l); } });
+  DB.deleteContact(id);
+  closeModal(); renderContacts(); showToast('Contact deleted', 'success');
+}
+
+// ── Location form ──
+function openLocationForm(id){
+  _editingLocation = id ? DB.locations.find(l=>l.id===id) : null;
+  const l = _editingLocation || { name:'', address:'', category:'Site', lat:null, lng:null, accuracy:null, contactId:null, important:false, notes:'' };
+  _locGps = { lat:l.lat||null, lng:l.lng||null, accuracy:l.accuracy||null };
+  const body = `
+    <div class="form-group"><label class="form-label">Place Name *</label>
+      <input class="form-input" id="lc-name" placeholder="e.g. Main Warehouse" value="${esc(l.name)}"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-input form-select" id="lc-cat">
+        ${Object.keys(LOCATION_CATS).map(k=>`<option value="${k}"${(l.category||'Other')===k?' selected':''}>${LOCATION_CATS[k]} ${k}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label class="form-label">Address</label>
+      <textarea class="form-input" id="lc-addr" rows="2" placeholder="Type the address or use GPS below">${esc(l.address||'')}</textarea></div>
+    <div class="form-group"><label class="form-label">GPS Coordinates (optional)</label>
+      <button type="button" class="btn btn-ghost btn-sm" id="lc-gps-btn" style="width:100%" onclick="locFormGetGPS()">📡 Use my current location</button>
+      <div id="lc-gps-info" style="font-size:11px;color:var(--text3);margin-top:6px">${l.lat&&l.lng?`📍 ${Number(l.lat).toFixed(5)}, ${Number(l.lng).toFixed(5)}${l.accuracy?' · ±'+Math.round(l.accuracy)+'m':''}`:'No GPS saved. Without GPS, maps will search by the address.'}</div>
+      ${l.lat&&l.lng?`<button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="locFormClearGPS()">Clear GPS</button>`:''}
+    </div>
+    <div class="form-group"><label class="form-label">Contact at this place (optional)</label>
+      <select class="form-input form-select" id="lc-contact">
+        <option value="">— None —</option>
+        ${DB.contacts.map(c=>`<option value="${c.id}"${l.contactId===c.id?' selected':''}>${esc(c.name)}${c.company?' · '+esc(c.company):''}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label class="form-label">⭐ Important</label>
+      <select class="form-input form-select" id="lc-imp">
+        <option value="0"${!l.important?' selected':''}>Normal</option>
+        <option value="1"${l.important?' selected':''}>⭐ Important (pinned to top)</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="lc-notes" rows="3" placeholder="Gate no., timings, landmark...">${esc(l.notes||'')}</textarea></div>`;
+  const footer = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveLocation()">${_editingLocation?'Update Place':'Save Place'}</button>`;
+  showModal(_editingLocation?'Edit Place':'New Place', body, footer);
+}
+
+async function locFormGetGPS(){
+  const btn = document.getElementById('lc-gps-btn');
+  const res = await getLocation(btn, null);
+  if (btn) btn.innerHTML = '📡 Use my current location';
+  if (!res) return;
+  _locGps = { lat:res.lat, lng:res.lng, accuracy:res.accuracy };
+  const addr = document.getElementById('lc-addr');
+  if (addr && !addr.value.trim() && res.address) addr.value = res.address;
+  document.getElementById('lc-gps-info').textContent =
+    `📍 ${Number(res.lat).toFixed(5)}, ${Number(res.lng).toFixed(5)}${res.accuracy?' · ±'+Math.round(res.accuracy)+'m':''}`;
+  showToast('📡 Location captured', 'success');
+}
+function locFormClearGPS(){
+  _locGps = { lat:null, lng:null, accuracy:null };
+  document.getElementById('lc-gps-info').textContent = 'GPS cleared.';
+}
+
+function saveLocation(){
+  const name = document.getElementById('lc-name').value.trim();
+  const address = document.getElementById('lc-addr').value.trim();
+  if (!name){ showToast('Please enter a place name', 'error'); return; }
+  if (!address && !(_locGps.lat && _locGps.lng)){ showToast('Add an address or capture GPS', 'error'); return; }
+  const now = new Date().toISOString();
+  const data = { name, address, category:document.getElementById('lc-cat').value,
+    lat:_locGps.lat, lng:_locGps.lng, accuracy:_locGps.accuracy,
+    contactId: document.getElementById('lc-contact').value || null,
+    important: document.getElementById('lc-imp').value==='1',
+    notes: document.getElementById('lc-notes').value.trim() };
+  const wasEdit = !!_editingLocation;
+  if (wasEdit){
+    Object.assign(_editingLocation, data, { updatedAt: now });
+    DB.updateLocation(_editingLocation);
+  } else {
+    DB.addLocation({ id: uid(), ...data, createdAt: now, updatedAt: now });
+  }
+  closeModal();
+  renderContacts();
+  showToast(wasEdit ? '✅ Place updated!' : '✅ Place saved!', 'success');
+}
+
+function deleteLocationAsk(id){
+  const l = DB.locations.find(x=>x.id===id); if(!l) return;
+  showModal('Delete Place?',
+    `<div style="font-size:14px;color:var(--text2);line-height:1.5">Delete <b>${esc(l.name)}</b>? This cannot be undone.</div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-danger" onclick="confirmDeleteLocation('${id}')">Delete</button>`);
+}
+function confirmDeleteLocation(id){
+  DB.deleteLocation(id);
+  closeModal(); renderContacts(); showToast('Place deleted', 'success');
+}
 
 // Handle back button
 window.addEventListener('popstate', ()=>{
